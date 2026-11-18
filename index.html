@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>練習</title>
+<meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#0d1029"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="練習"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icons/apple-touch-icon.png"><link rel="icon" href="icons/icon-192.png"><link rel="stylesheet" href="fonts.css">
+<style>:root{--bg:#0d1029;--p1:#1a2048;--p2:#232b5e;--ln:#3a4590;--ink:#eef0ff;--dim:#9aa3d0;--red:#e8413c;--gold:#ffd43b;--shadow:#05071a}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:#070a1c;color:var(--ink);font-family:'DotGothic16','PingFang TC','Noto Sans TC','Microsoft JhengHei',monospace;font-size:15px;line-height:1.45}
+body{display:flex;justify-content:center;min-height:100vh}
+#app{width:100%;max-width:480px;min-height:100vh;background:var(--bg);position:relative;padding-bottom:84px;overflow-x:hidden}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+canvas{image-rendering:pixelated;image-rendering:crisp-edges}
+.top{display:flex;align-items:center;gap:8px;padding:10px 12px;position:sticky;top:0;z-index:5;background:linear-gradient(#0d1029,#0d1029ee)}
+.badge{padding:3px 8px;background:var(--red);color:#fff;box-shadow:0 0 0 2px var(--shadow);font-size:13px}
+.sp{flex:1}
+.gem{display:flex;align-items:center;gap:5px;padding:3px 8px;background:var(--p1);box-shadow:0 0 0 2px var(--ln)}
+.gem i,.mg{display:inline-block;width:12px;height:12px;background:radial-gradient(circle at 30% 30%,#fff 0 12%,#7dffd0 13% 50%,#1fb98a 51%);clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%)}
+.ibtn{width:34px;height:34px;background:var(--p1);box-shadow:0 0 0 2px var(--ln);display:grid;place-items:center;font-size:17px}
+.view{padding:0 12px 12px}
+.px{background:var(--p1);box-shadow:0 0 0 3px var(--shadow),inset 0 0 0 2px var(--ln);padding:12px;margin:12px 0}
+.px h3{margin:0 0 8px;font-size:15px;color:var(--gold);font-weight:normal;letter-spacing:1px}
+.stage{width:100%;aspect-ratio:16/10;display:block;box-shadow:0 0 0 3px var(--shadow),0 0 0 5px var(--ln)}
+.stagewrap{position:relative;margin:10px 0}
+.stagewrap .ov{position:absolute;left:8px;bottom:8px;background:#000a;padding:2px 8px;font-size:13px}
+.btn{display:block;width:100%;padding:13px;text-align:center;background:var(--red);color:#fff;font-size:17px;letter-spacing:2px;box-shadow:0 0 0 3px var(--shadow),inset 0 -5px 0 #a82a2a,inset 0 0 0 2px #ff7a74;margin:10px 0}
+.btn:active{transform:translateY(2px)}
+.btn.alt{background:var(--p2);box-shadow:0 0 0 3px var(--shadow),inset 0 -5px 0 #161c44,inset 0 0 0 2px var(--ln)}
+.btn.gold{background:#d9a60f;color:#2a1c00;box-shadow:0 0 0 3px var(--shadow),inset 0 -5px 0 #a87a00,inset 0 0 0 2px #ffe27a}
+.btn.sm{display:inline-block;width:auto;padding:7px 14px;font-size:14px;margin:4px 4px 4px 0;letter-spacing:0}
+.btn[disabled]{opacity:.45}
+.row{display:flex;gap:8px;align-items:center}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
+.stat b{display:block;font-size:22px;color:#fff;font-weight:normal}
+.stat span{font-size:12px;color:var(--dim)}
+.bar{height:14px;background:#0a0d26;box-shadow:inset 0 0 0 2px #2a3270;position:relative;overflow:hidden}
+.bar>i{display:block;height:100%;background:repeating-linear-gradient(90deg,var(--c,#ffd43b) 0 6px,color-mix(in srgb,var(--c,#ffd43b) 70%,#000) 6px 8px);transition:width .8s steps(12)}
+.dim{color:var(--dim);font-size:13px}
+.skill{display:block;width:100%;text-align:left;margin:10px 0;padding:12px;background:var(--p1);box-shadow:0 0 0 3px var(--shadow),inset 0 0 0 2px var(--ln)}
+.skill.sel{box-shadow:0 0 0 3px var(--gold),inset 0 0 0 2px var(--gold);background:var(--p2)}
+.skill .nm{font-size:16px;margin-bottom:6px}
+.nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;display:grid;grid-template-columns:repeat(5,1fr);background:#080b22;box-shadow:0 -3px 0 var(--ln);z-index:10;padding-bottom:env(safe-area-inset-bottom)}
+.nav button{padding:8px 0 7px;font-size:12px;color:var(--dim);display:flex;flex-direction:column;align-items:center;gap:3px}
+.nav button canvas{width:26px;height:26px}
+.nav button.on{color:var(--gold);background:var(--p1)}
+.nav button.mid{position:relative}
+.modal{position:fixed;inset:0;background:#000c;z-index:50;display:flex;align-items:center;justify-content:center;padding:18px}
+.modal .box{width:100%;max-width:420px;max-height:92vh;overflow:auto;background:var(--p1);box-shadow:0 0 0 3px var(--shadow),inset 0 0 0 3px var(--ln),0 0 0 6px var(--ln);padding:16px}
+.modal h2{margin:0 0 10px;font-size:18px;font-weight:normal;color:var(--gold)}
+input[type=text],textarea{width:100%;background:#0a0d26;color:var(--ink);border:0;box-shadow:inset 0 0 0 2px var(--ln);padding:10px;font:inherit;border-radius:0;outline:none}
+textarea{min-height:90px;resize:vertical}
+.cats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}
+.cat{padding:10px 4px;text-align:center;background:#0a0d26;box-shadow:inset 0 0 0 2px var(--ln);font-size:13px}
+.cat b{display:block;font-size:17px;font-weight:normal;margin-bottom:3px}
+.cat.on{box-shadow:inset 0 0 0 3px var(--gold);background:var(--p2)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.chip{padding:4px 10px;background:#0a0d26;box-shadow:inset 0 0 0 2px var(--ln);font-size:13px}
+.chip.on{background:var(--p2);box-shadow:inset 0 0 0 2px currentColor}
+.chip.lock{opacity:.45}
+.timer{font-size:56px;text-align:center;letter-spacing:3px;margin:6px 0;text-shadow:0 4px 0 #000a}
+.heat{display:grid;grid-template-rows:repeat(7,1fr);grid-auto-flow:column;gap:3px}
+.heat i{aspect-ratio:1;background:#12163a;display:block}
+.heat i.l1{background:#2a5a45}.heat i.l2{background:#2f9b6a}.heat i.l3{background:#6fe3a0}.heat i.l4{background:#d6ffe6}
+.log{padding:8px 0;border-bottom:2px dashed #2a3270}
+.log img{width:72px;height:72px;object-fit:cover;image-rendering:auto;box-shadow:0 0 0 2px var(--ln);margin-top:6px;display:block}
+.ms{display:flex;justify-content:space-between;padding:5px 0;font-size:13px}
+.ms.ok{color:var(--gold)}
+.ms:not(.ok){color:var(--dim)}
+.toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:#000d;padding:9px 16px;z-index:80;box-shadow:0 0 0 2px var(--ln);font-size:14px;max-width:90%;text-align:center}
+.bt{position:fixed;inset:0;z-index:90;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(circle,#1a1040 0,#05071a 75%);text-align:center;padding:20px;animation:fadein .3s}
+.bt canvas.fx{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.bt h1{font-size:44px;margin:0 0 10px;font-weight:normal;letter-spacing:8px;animation:pop .6s steps(6)}
+.bt .big{font-size:80px}
+.bt .nm{font-size:20px;margin:8px 0}
+.bt .lv{font-size:28px;margin:10px 0}
+.bt .tap{margin-top:30px;color:var(--dim);animation:blink 1s steps(2) infinite}
+@keyframes pop{0%{transform:scale(.2)}100%{transform:scale(1)}}
+@keyframes fadein{from{opacity:0}}
+@keyframes blink{50%{opacity:0}}
+.rays{position:absolute;inset:-50%;background:repeating-conic-gradient(from 0deg,#ffffff14 0 8deg,transparent 8deg 20deg);animation:spin 20s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:30px 10px;color:var(--dim)}
+.photoprev{max-width:100%;max-height:200px;display:block;margin:8px 0}
+.fileb{position:relative;overflow:hidden}
+.fileb input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.warn{color:#ffb3b0}
+.runbar{margin:10px 0;padding:10px 12px;background:#3a1220;box-shadow:0 0 0 3px var(--shadow),inset 0 0 0 2px var(--red);cursor:pointer}
+.runbar b{font-size:20px;font-weight:normal;color:#fff}
+.runbar .blink{color:var(--red);animation:blink 1s steps(2) infinite}
+</style></head><body><div id="app"></div><div id="md"></div>
+<script>/* ===== 練習 · 純邏輯 (可在 node 測試) ===== */
+const RANKS = ['D', 'C', 'B', 'A', 'S', 'SS'];
+const RANK_COLORS = ['#eef0f4', '#5fe07a', '#4fa8ff', '#b878ff', '#ffd43b', '#ff4d4d'];
+const HOURS_PER_LV = [10, 17, 26, 38, 53, 70];
+const CATS = {
+  '忍術': { key: 'nin', color: '#ff8a3d', desc: '火遁．雷遁等元素之術' },
+  '幻術': { key: 'gen', color: '#c58cff', desc: '幻影．分身．迷惑之術' },
+  '體術': { key: 'tai', color: '#6fe3ff', desc: '速度．力量．身體之術' },
+};
+const NINJA_RANKS = ['入門忍者', '下忍', '中忍', '上忍'];
+const MAX_HOURS = 1000;
+const DAY_START_HOUR = 5;
+const QUALIFY_SEC = 5 * 60;
+const QUEST_SEC = 30 * 60;
+const QUEST_GEMS = 3;
+
+// 每個 Lv 的起始累積小時 (共30級)
+const LEVEL_STARTS = (() => {
+  const a = []; let t = 0;
+  for (let r = 0; r < 6; r++) for (let l = 0; l < 5; l++) { a.push(t); t += HOURS_PER_LV[r]; }
+  return a; // a[29] = 1000 - ... 實際 SS5 起點
+})();
+// 修正: SS5 起點應為 1000 (最高級)，因此 SS 級每級 70h 共到 1000：720,790,860,930,1000
+function levelInfo(hours) {
+  const h = Math.min(Math.max(hours, 0), MAX_HOURS);
+  let idx = 0;
+  for (let i = 0; i < 30; i++) if (h >= LEVEL_STARTS[i]) idx = i;
+  const rank = Math.floor(idx / 5), lv = (idx % 5) + 1;
+  const isMax = idx === 29;
+  const start = LEVEL_STARTS[idx];
+  const need = isMax ? 0 : HOURS_PER_LV[rank];
+  const into = isMax ? 0 : h - start;
+  return { idx, rank, rankName: RANKS[rank], lv, isMax, start, need, into, progress: isMax ? 1 : into / need, color: RANK_COLORS[rank] };
+}
+function damageBonus(hours) { return 1 + 0.0018 * Math.min(Math.max(hours, 0), MAX_HOURS); }
+function ninjaRankIndex(skills) {
+  let best = 0;
+  for (const s of skills) {
+    const r = levelInfo(s.sec / 3600).rank;
+    const n = r >= 3 ? 3 : r >= 2 ? 2 : r >= 1 ? 1 : 0;
+    if (n > best) best = n;
+  }
+  return best;
+}
+function skillTitle(s, withRank) {
+  const li = levelInfo(s.sec / 3600);
+  return (withRank ? li.rankName + '　' : '') + s.cat + '．' + s.name + '之術（Lv.' + li.lv + '）';
+}
+
+// 日期 (凌晨5點換日)
+function pad(n) { return String(n).padStart(2, '0'); }
+function dayKey(ts) {
+  const d = new Date(ts - DAY_START_HOUR * 3600 * 1000);
+  return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+}
+function keyToDate(k) { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d, 12); }
+function addDays(k, n) { const d = keyToDate(k); d.setDate(d.getDate() + n); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+
+function dayTotals(sessions) {
+  const m = {};
+  for (const s of sessions) {
+    const k = dayKey(s.end);
+    const o = m[k] || (m[k] = { sec: 0, qualify: false, n: 0 });
+    o.sec += s.sec; o.n++;
+    if (s.sec >= QUALIFY_SEC) o.qualify = true;
+  }
+  return m;
+}
+function computeStats(sessions, now) {
+  const m = dayTotals(sessions);
+  const keys = Object.keys(m).filter(k => m[k].qualify).sort();
+  const today = dayKey(now);
+  // 連續天數: 從今天(若今天尚未達成則從昨天)往回
+  let streak = 0;
+  let k = m[today] && m[today].qualify ? today : addDays(today, -1);
+  while (m[k] && m[k].qualify) { streak++; k = addDays(k, -1); }
+  // 最長連續
+  let best = 0, run = 0, prev = null;
+  for (const key of keys) {
+    run = prev && addDays(prev, 1) === key ? run + 1 : 1;
+    if (run > best) best = run; prev = key;
+  }
+  const todaySec = m[today] ? m[today].sec : 0;
+  const totalSec = sessions.reduce((a, s) => a + s.sec, 0);
+  return { streak, best, days: keys.length, todaySec, todayQualified: !!(m[today] && m[today].qualify), totalSec, today, dayMap: m };
+}
+
+const STREAK_MS = [[3, 5], [7, 10], [14, 20], [30, 50], [60, 100], [100, 200], [200, 300], [365, 500]];
+const HOUR_MS = [[1, 3], [10, 10], [50, 30], [100, 60], [250, 100], [500, 200], [1000, 500]];
+const DAYS_MS = [[5, 3], [10, 5], [30, 15], [60, 30], [100, 60], [200, 120], [365, 250]];
+
+// 計算尚未領取的獎勵; 回傳 [{key,gems,label}]
+function pendingRewards(state, now) {
+  const st = computeStats(state.sessions, now);
+  const out = [];
+  const claimed = state.claimed || {};
+  for (const [d, g] of STREAK_MS) if (st.best >= d && !claimed['streak' + d]) out.push({ key: 'streak' + d, gems: g, label: '連續修練 ' + d + ' 天' });
+  const hours = st.totalSec / 3600;
+  for (const [h, g] of HOUR_MS) if (hours >= h && !claimed['hour' + h]) out.push({ key: 'hour' + h, gems: g, label: '累積修練 ' + h + ' 小時' });
+  for (const [d, g] of DAYS_MS) if (st.days >= d && !claimed['days' + d]) out.push({ key: 'days' + d, gems: g, label: '累積修練 ' + d + ' 天' });
+  // 每日任務 (今天達成 30 分鐘)
+  const dm = st.dayMap;
+  for (const k of Object.keys(dm)) if (dm[k].sec >= QUEST_SEC && !claimed['q:' + k]) out.push({ key: 'q:' + k, gems: QUEST_GEMS, label: '每日任務達成' });
+  return out;
+}
+function applyRewards(state, list) {
+  state.claimed = state.claimed || {};
+  let g = 0;
+  for (const r of list) { state.claimed[r.key] = 1; g += r.gems; }
+  state.gems = (state.gems || 0) + g;
+  return g;
+}
+function fmtDur(sec) {
+  sec = Math.max(0, Math.floor(sec));
+  const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+  return h > 0 ? h + ':' + pad(m) + ':' + pad(s) : pad(m) + ':' + pad(s);
+}
+function fmtHours(sec) { const h = sec / 3600; return h >= 100 ? h.toFixed(0) : h.toFixed(1); }
+
+// 加入修練後的結果摘要 (升級判定)
+function addSession(state, skillId, sec, startTs, endTs, note, photoId) {
+  const sk = state.skills.find(s => s.id === skillId);
+  const before = levelInfo(sk.sec / 3600), nrBefore = ninjaRankIndex(state.skills);
+  sk.sec += sec;
+  const ses = { id: 's' + endTs.toString(36), skillId, start: startTs, end: endTs, sec, note: note || '', photo: photoId || null };
+  state.sessions.push(ses);
+  const after = levelInfo(sk.sec / 3600), nrAfter = ninjaRankIndex(state.skills);
+  const rewards = pendingRewards(state, endTs);
+  const gems = applyRewards(state, rewards);
+  return { session: ses, before, after, levelUp: after.idx > before.idx, rankUp: after.rank > before.rank, ninjaUp: nrAfter > nrBefore, ninjaRank: nrAfter, rewards, gems };
+}
+
+if (false) module.exports = { RANKS, RANK_COLORS, HOURS_PER_LV, LEVEL_STARTS, levelInfo, damageBonus, ninjaRankIndex, dayKey, addDays, computeStats, pendingRewards, applyRewards, addSession, skillTitle, fmtDur, NINJA_RANKS, CATS };
+
+/* ===== 像素美術 · 舞台 · 特效 · 音效 ===== */
+const PAL = { '.': null, n: '#1b2038', N: '#2e3a6e', M: '#3f4f93', s: '#f4cfa6', S: '#d9a77a', r: '#e8413c', R: '#a82a2a', g: '#b9c2da', G: '#7e88a8', w: '#ffffff', b: '#10131f', y: '#ffd43b' };
+const NINJA = [
+  '....nnnnnnnn....',
+  '...nNNNNNNNNn...',
+  '...nNNNNNNNNn...',
+  '...ngggyygggn...',
+  '...nnssssssnn...',
+  '...nsbwssbwsn...',
+  '...nnnnnnnnnn...',
+  '....nnrrrrnnrr..',
+  '...nnNMMMNNnrRR.',
+  '..nNNMNNNNMNnR..',
+  '..nNNNNNNNNNNn..',
+  '.snNNNNNNNNNNns.',
+  '..nNNggggggNNn..',
+  '..nNNNNNNNNNNn..',
+  '...nNNNNNNNNn...',
+  '...nNNn..nNNn...',
+  '...nNNn..nNNn...',
+  '..nnNNn..nNNnn..',
+  '..nnnnn..nnnnn..',
+].map(r => (r + '................').slice(0, 16));
+const NINJA_ARMS_UP = [[1, 6, 's'], [14, 6, 's'], [1, 7, 'n'], [14, 7, 'n'], [1, 8, 'N'], [14, 8, 'N'], [1, 9, 'N'], [14, 9, 'N']];
+
+function spriteCanvas(rows, pal, extra) {
+  const h = rows.length, w = rows[0].length;
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const x = c.getContext('2d');
+  rows.forEach((row, j) => { for (let i = 0; i < w; i++) { const col = pal[row[i]]; if (col) { x.fillStyle = col; x.fillRect(i, j, 1, 1); } } });
+  if (extra) for (const [i, j, k] of extra) { x.clearRect(i, j, 1, 1); x.fillStyle = pal[k]; x.fillRect(i, j, 1, 1); }
+  return c;
+}
+const LOOKPAL = [{}, { r: '#3fbf6a', R: '#27804a' }, { N: '#2f5fa8', M: '#4a82d0', r: '#5bb4ff', R: '#2a6fc0' }, { N: '#5a2f8a', M: '#7a4ab0', r: '#ffd43b', R: '#c9971a', g: '#ffd43b' }];
+const LOOKEXTRA = [[], [], [[2, 9, 'g'], [13, 9, 'g']], [[2, 9, 'g'], [13, 9, 'g'], [2, 10, 'g'], [13, 10, 'g'], [14, 12, 'R'], [14, 13, 'R'], [15, 13, 'R'], [14, 14, 'r']]];
+const SPRC = {};
+function sprites(rank) {
+  rank = rank || 0; if (SPRC[rank]) return SPRC[rank];
+  const pal = Object.assign({}, PAL, LOOKPAL[rank] || {}), ex = LOOKEXTRA[rank] || [];
+  const base = spriteCanvas(NINJA, pal, ex), cast = spriteCanvas(NINJA, pal, ex), x = cast.getContext('2d');
+  x.clearRect(1, 11, 1, 1); x.clearRect(14, 11, 1, 1);
+  x.fillStyle = pal.s; x.fillRect(1, 5, 2, 2); x.fillRect(13, 5, 2, 2);
+  x.fillStyle = pal.n; x.fillRect(2, 7, 1, 4); x.fillRect(13, 7, 1, 4);
+  x.fillStyle = pal.N; x.fillRect(3, 8, 1, 3); x.fillRect(12, 8, 1, 3);
+  return (SPRC[rank] = { base, cast });
+}
+
+function rng(seed) { let s = seed >>> 0 || 1; return () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296; }
+
+const W = 160, H = 100;
+let BG = null;
+function bgCanvas() {
+  if (BG) return BG;
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const x = c.getContext('2d');
+  const sky = ['#0b0e2b', '#10143a', '#161a46', '#1d1d52', '#2a2160', '#3a2766', '#512d6b', '#6e3470', '#8a3d6e'];
+  for (let i = 0; i < sky.length; i++) { x.fillStyle = sky[i]; x.fillRect(0, i * 8, W, 9); }
+  // 月亮
+  x.fillStyle = '#c9b8ff22'; for (let r = 18; r > 10; r -= 2) { x.beginPath(); x.arc(122, 22, r, 0, 7); x.fill(); }
+  x.fillStyle = '#fff0bd'; x.beginPath(); x.arc(122, 22, 10, 0, 7); x.fill();
+  x.fillStyle = '#e8d596'; x.fillRect(118, 18, 3, 3); x.fillRect(124, 25, 4, 3); x.fillRect(121, 28, 2, 2);
+  // 遠山
+  const mt = (base, amp, col, seed) => {
+    x.fillStyle = col;
+    for (let i = 0; i < W; i++) {
+      const h = base + Math.sin(i * 0.05 + seed) * amp + Math.sin(i * 0.13 + seed * 2) * amp * 0.4;
+      x.fillRect(i, Math.round(h), 1, H - h);
+    }
+  };
+  mt(56, 8, '#2a2860', 1); mt(64, 6, '#1d1f4d', 4);
+  // 五重塔
+  x.fillStyle = '#0d1029';
+  const px = 24, pb = 74;
+  x.fillRect(px - 1, pb - 38, 2, 6);
+  for (let i = 0; i < 4; i++) {
+    const wd = 22 - i * 4, y = pb - 8 - i * 9;
+    x.fillRect(px - wd / 2 - 3, y, wd + 6, 2);
+    x.fillRect(px - wd / 2 - 1, y - 1, wd + 2, 1);
+    x.fillRect(px - wd / 2, y + 2, wd, 7);
+  }
+  x.fillRect(px - 12, pb, 24, 8);
+  x.fillStyle = '#ffd96a'; for (let i = 0; i < 4; i++) { x.fillRect(px - 2, pb - 6 - i * 9, 1, 2); x.fillRect(px + 2, pb - 6 - i * 9, 1, 2); }
+  // 鳥居
+  x.fillStyle = '#9b2a33'; x.fillRect(128, 62, 3, 18); x.fillRect(146, 62, 3, 18);
+  x.fillRect(124, 58, 29, 3); x.fillRect(127, 63, 23, 2);
+  x.fillStyle = '#4a1218'; x.fillRect(124, 57, 29, 1);
+  // 竹子
+  for (const [bx, bh] of [[8, 50], [12, 40], [50, 56], [54, 44], [104, 52], [100, 60], [150, 46]]) {
+    x.fillStyle = '#17432f'; x.fillRect(bx, 80 - bh, 2, bh);
+    x.fillStyle = '#226b49'; for (let k = 0; k < bh; k += 9) x.fillRect(bx, 80 - k, 2, 1);
+    x.fillStyle = '#2e8a5c'; x.fillRect(bx + 2, 80 - bh + 4, 4, 1); x.fillRect(bx - 3, 80 - bh + 10, 3, 1);
+  }
+  // 地面
+  x.fillStyle = '#1c2147'; x.fillRect(0, 78, W, 22);
+  x.fillStyle = '#262c5a'; x.fillRect(0, 78, W, 2);
+  x.fillStyle = '#171b3b'; for (let i = 0; i < W; i += 16) x.fillRect(i, 82, 1, 18);
+  for (let j = 88; j < H; j += 9) { x.fillRect(0, j, W, 1); }
+  x.fillStyle = '#323a74'; for (let i = 3; i < W; i += 16) x.fillRect(i, 80, 4, 1);
+  // 燈籠
+  x.fillStyle = '#0d1029'; x.fillRect(86, 66, 1, 12); x.fillRect(84, 64, 5, 1); x.fillRect(83, 78, 7, 2);
+  x.fillStyle = '#ffb347'; x.fillRect(85, 65, 3, 3);
+  BG = c; return c;
+}
+
+class Stage {
+  constructor(canvas, opt) {
+    this.c = canvas; canvas.width = W; canvas.height = H;
+    this.x = canvas.getContext('2d'); this.x.imageSmoothingEnabled = false;
+    this.cat = '忍術'; this.tier = 0; this.casting = false; this.t = 0; this.parts = []; this.look = 0; this.train = false; this.dmgs = []; this.dshake = 0; this._pp = 0; this.bonus = 1; this.once = false; this._t0 = 0; this.label = ''; this.lcolor = '#fff'; this._lp = null;
+    this.rand = rng(Math.floor(Math.random() * 1e9));
+    this.stars = Array.from({ length: 26 }, () => [this.rand() * W, this.rand() * 46, this.rand() * 6]);
+    this.petals = Array.from({ length: 9 }, () => [this.rand() * W, this.rand() * H, 0.2 + this.rand() * 0.4, this.rand() * 6]);
+    this.flies = Array.from({ length: 7 }, () => [this.rand() * W, 50 + this.rand() * 28, this.rand() * 6]);
+    this.raf = 0; this.last = 0; this.running = false; this.flash = 0; this.shake = 0;
+    this.burst = null;
+  }
+  set(cat, tier, casting, look, train, once) { this.cat = cat; this.tier = Math.max(0, Math.min(5, tier)); this.casting = casting; this.look = look || 0; this.train = !!train; this.once = !!once; this._t0 = this.t; this.dmgs = []; this._pp = 0; this.parts.length = 0; }
+  start() { if (this.running) return; this.running = true; this.last = performance.now(); const loop = (n) => { if (!this.running) return; this.raf = requestAnimationFrame(loop); if (n - this.last < 66) return; const dt = Math.min(0.2, (n - this.last) / 1000); this.last = n; this.step(dt); }; this.raf = requestAnimationFrame(loop); }
+  stop() { this.running = false; cancelAnimationFrame(this.raf); }
+  P(x, y, vx, vy, life, col, s, g) { if (this.parts.length > 420) return; this.parts.push({ x, y, vx, vy, life, max: life, c: col, s: s || 1, g: g || 0 }); }
+  ninja(x, y, a) { const sp = sprites(this.look); this.x.globalAlpha = a; this.x.drawImage(this.casting ? sp.cast : sp.base, Math.round(x), Math.round(y), 32, 38); this.x.globalAlpha = 1; }
+  step(dt) {
+    const x = this.x, t = (this.t += dt), R = this.rand, tier = this.tier, cat = this.cat;
+    x.globalAlpha = 1;
+    x.drawImage(bgCanvas(), 0, 0);
+    // 星
+    for (const s of this.stars) { if (Math.sin(t * 2 + s[2]) > 0.2) { x.fillStyle = '#fff'; x.fillRect(Math.round(s[0]), Math.round(s[1]), 1, 1); } }
+    // 螢火蟲
+    for (const f of this.flies) { f[0] += Math.sin(t + f[2]) * 0.3; f[1] += Math.cos(t * 0.8 + f[2]) * 0.2; x.fillStyle = Math.sin(t * 3 + f[2]) > 0 ? '#e9ff9a' : '#7a8f4a'; x.fillRect(Math.round(f[0]), Math.round(f[1]), 1, 1); }
+    // 櫻花瓣
+    x.fillStyle = '#ffb7d0';
+    for (const p of this.petals) { p[1] += p[2]; p[0] += Math.sin(t + p[3]) * 0.3 + 0.1; if (p[1] > H) { p[1] = -2; p[0] = R() * W; } x.fillRect(Math.round(p[0]), Math.round(p[1]), 2, 1); }
+
+    const feet = 78; let cx = 80, off = 0, proj = null;
+    if (this.train) {
+      this._lp = null; cx = 44; const e = t - this._t0, done = this.once && e >= 3.6, p = this.once ? Math.min(e, 3.59) : e % 3.6;
+      if (done) { this.casting = false; this.dummy(dt); }
+      else {
+        if (this._pp < 1.9 && p >= 1.9) this.hit();
+        this._pp = p; this.casting = p < 1.9; this._lp = p;
+        if (this.cat === '體術') { if (p >= 1.4 && p < 1.9) off = (p - 1.4) / 0.5 * 52; else if (p >= 1.9 && p < 2.7) off = 52 * (1 - (p - 1.9) / 0.8); }
+        else if (p >= 1.4 && p < 1.9) proj = (p - 1.4) / 0.5;
+        this.dummy(dt);
+      }
+    }
+    cx += off;
+    const bob = this.casting ? Math.round(Math.sin(t * 9) * 1) : Math.round(Math.sin(t * 2.5));
+    const nx = cx - 16, ny = feet - 38 + bob;
+    if (this.casting) this.fx(dt, t, cx, ny, feet);
+    x.fillStyle = '#0a0d22aa'; x.fillRect(cx - 12, feet - 1, 24, 2);
+    this.ninja(nx, ny, 1);
+    if (this.casting) this.front(dt, t, cx, ny, feet);
+    if (proj !== null) this.projDraw(proj, cx, ny);
+    // 粒子
+    for (let i = this.parts.length - 1; i >= 0; i--) {
+      const p = this.parts[i]; p.life -= dt; if (p.life <= 0) { this.parts.splice(i, 1); continue; }
+      p.vy += p.g * dt; p.x += p.vx * dt; p.y += p.vy * dt;
+      x.globalAlpha = Math.min(1, p.life / p.max * 1.5); x.fillStyle = p.c; x.fillRect(Math.round(p.x), Math.round(p.y), p.s, p.s);
+    }
+    for (let i = this.dmgs.length - 1; i >= 0; i--) { const d = this.dmgs[i]; d.life -= dt; d.y -= 16 * dt; if (d.life <= 0) { this.dmgs.splice(i, 1); continue; } x.globalAlpha = Math.min(1, d.life * 2); x.font = 'bold 10px monospace'; x.lineWidth = 3; x.strokeStyle = '#000'; x.strokeText('-' + d.v, d.x, d.y); x.fillStyle = '#ffe27a'; x.fillText('-' + d.v, d.x, d.y); }
+    x.globalAlpha = 1;
+    if (this.label && this.casting) {
+      let a = 1; const p = this._lp;
+      if (p !== null) a = Math.max(0, Math.min(1, (p - 0.1) / 0.25, (1.9 - p) / 0.3));
+      if (a > 0) {
+        x.globalAlpha = a; x.font = 'bold 9px DotGothic16, monospace'; x.textBaseline = 'alphabetic';
+        const w = Math.ceil(x.measureText(this.label).width), lx = Math.round(80 - w / 2), ly = Math.round(15 - (1 - a) * 4);
+        x.fillStyle = 'rgba(5,7,26,0.7)'; x.fillRect(lx - 4, ly - 10, w + 8, 14);
+        x.fillStyle = this.lcolor; x.fillRect(lx - 4, ly - 10, 1, 14); x.fillRect(lx + w + 3, ly - 10, 1, 14);
+        x.lineWidth = 2; x.strokeStyle = '#000'; x.strokeText(this.label, lx, ly); x.fillStyle = this.lcolor; x.fillText(this.label, lx, ly);
+        x.globalAlpha = 1;
+      }
+    }
+    if (this.flash > 0) { x.fillStyle = 'rgba(255,255,255,' + Math.min(0.8, this.flash) + ')'; x.fillRect(0, 0, W, H); this.flash -= dt * 2.2; }
+  }
+  dummy(dt) {
+    const x = this.x, sh = this.dshake > 0 ? Math.round(Math.sin(this.t * 60) * 2 * this.dshake / 0.45) : 0, c = 118 + sh;
+    if (this.dshake > 0) this.dshake -= dt;
+    x.fillStyle = '#0a0d22aa'; x.fillRect(109, 77, 18, 2);
+    x.fillStyle = '#5a3a1e'; x.fillRect(c - 5, 44, 10, 33); x.fillStyle = '#7a5230'; x.fillRect(c - 5, 44, 4, 33); x.fillStyle = '#3d2612'; x.fillRect(c + 3, 44, 2, 33);
+    x.fillStyle = '#5a3a1e'; x.fillRect(c - 11, 50, 22, 3); x.fillStyle = '#7a5230'; x.fillRect(c - 11, 50, 22, 1);
+    x.fillStyle = '#d9c9a0'; x.fillRect(c - 6, 58, 12, 2); x.fillRect(c - 6, 62, 12, 2);
+    x.fillStyle = '#a8793f'; x.fillRect(c - 5, 44, 10, 2); x.fillStyle = '#e8413c'; x.fillRect(c - 2, 67, 4, 4);
+  }
+  hit() {
+    const R = this.rand, tier = this.tier, cat = this.cat;
+    const C = cat === '忍術' ? ['#fff1b3', '#ffc23d', '#ff7a2a'] : cat === '幻術' ? ['#f5e1ff', '#d9a6ff', '#a56bff'] : ['#ffffff', '#c9f6ff', '#6fe3ff'];
+    for (let i = 0; i < 18 + tier * 9; i++) this.P(118, 58 + (R() - 0.5) * 14, (R() - 0.5) * 90, (R() - 0.8) * 70, 0.6, C[(R() * 3) | 0], R() < 0.3 ? 2 : 1, 120);
+    this.dshake = 0.45; if (tier >= 4) this.flash = 0.45;
+    this.dmgs.push({ x: 104, y: 42, v: Math.round((70 + R() * 50) * (this.bonus || 1) * (1 + tier * 0.35)), life: 1.1 });
+  }
+  projDraw(u, cx, ny) {
+    const x = this.x, tier = this.tier, R = this.rand, px = cx + 14 + (118 - 10 - cx - 14) * u, py = ny + 18 - Math.sin(u * 3.14) * 5;
+    if (this.cat === '忍術') {
+      const n = tier >= 3 ? 3 : 1, r = 2 + Math.min(4, tier);
+      for (let i = 0; i < n; i++) { const bx = Math.round(px - i * 10), by = Math.round(py + (i - (n - 1) / 2) * 4); x.fillStyle = '#d7331c'; x.fillRect(bx - r, by - r, r * 2, r * 2); x.fillStyle = '#ff9a2a'; x.fillRect(bx - r + 1, by - r + 1, r * 2 - 2, r * 2 - 2); x.fillStyle = '#fff1b3'; x.fillRect(bx - 1, by - 1, 2, 2); this.P(bx - r, by, -20, (R() - 0.5) * 12, 0.4, '#ffb23d', 1, 0); }
+    } else {
+      const n = tier >= 3 ? 3 : 1, r = 2 + Math.min(3, tier);
+      for (let i = 0; i < n; i++) { const bx = Math.round(px - i * 6), by = Math.round(py + (i - (n - 1) / 2) * 7 + Math.sin(this.t * 14 + i) * 2); x.fillStyle = '#5a2f9a'; x.fillRect(bx - r, by - r, r * 2, r * 2); x.fillStyle = '#c58cff'; x.fillRect(bx - r + 1, by - r + 1, r * 2 - 2, r * 2 - 2); x.fillStyle = '#fff'; x.fillRect(bx - 1, by - 1, 2, 2); this.P(bx - r, by, -14, (R() - 0.5) * 16, 0.5, '#e6c2ff', 1, 0); }
+    }
+  }
+  // 背景層特效 (角色後方) + 產生粒子
+  fx(dt, t, cx, ny, feet) {
+    const x = this.x, R = this.rand, tier = this.tier, cat = this.cat, cy = ny + 20;
+    const emit = (rate, fn) => { let n = rate * dt * 15; while (n > 0) { if (n >= 1 || R() < n) fn(); n -= 1; } };
+    if (cat === '忍術') {
+      const F = ['#fff1b3', '#ffc23d', '#ff7a2a', '#d7331c'];
+      emit(1 + tier * 1.4, () => this.P(cx + (R() - 0.5) * 30, feet - 2, (R() - 0.5) * 14, -20 - R() * 25 - tier * 4, 0.6 + R() * 0.6, F[(R() * 4) | 0], R() < 0.3 ? 2 : 1, -4));
+      if (tier >= 2) emit(tier * 0.8, () => this.P(cx + (R() - 0.5) * 70, feet, 0, -30 - R() * 30, 0.8, F[1 + ((R() * 3) | 0)], 2, -6));
+      if (tier >= 3) { x.fillStyle = 'rgba(255,120,40,0.18)'; x.beginPath(); x.arc(cx, cy, 30 + Math.sin(t * 6) * 3, 0, 7); x.fill(); }
+      if (tier >= 4) { x.fillStyle = 'rgba(255,70,30,' + (0.12 + 0.05 * Math.sin(t * 8)) + ')'; x.fillRect(cx - 28, 20, 56, feet - 20); }
+      if (tier >= 5 && ((t * 1.2) % 2) < dt * 1.2) this.flash = 0.5;
+    } else if (cat === '幻術') {
+      const C = ['#f5e1ff', '#d9a6ff', '#a56bff', '#ff8fd8'];
+      emit(0.8 + tier * 1.1, () => { const a = t * 3 + R() * 6.28, r = 12 + R() * (14 + tier * 3); this.P(cx + Math.cos(a) * r, cy + Math.sin(a) * r * 0.8, Math.cos(a + 1.6) * 10, Math.sin(a + 1.6) * 10 - 6, 0.9, C[(R() * 4) | 0], 1 + (R() < 0.2 ? 1 : 0), 0); });
+      const n = tier >= 2 ? [0, 0, 2, 2, 4, 6][tier] : 0;
+      for (let i = 0; i < n; i++) { const side = i % 2 ? 1 : -1, k = (i >> 1) + 1, off = side * (16 + k * 16) + Math.sin(t * 2 + i) * 4; this.ninja(cx - 16 + off, ny + Math.sin(t * 3 + i) * 1.5, 0.28); }
+      if (tier >= 3) { x.strokeStyle = 'rgba(210,150,255,0.7)'; x.lineWidth = 1; x.beginPath(); x.ellipse(cx, feet, 30, 7, 0, 0, 7); x.stroke(); x.beginPath(); x.ellipse(cx, feet, 20, 4, 0, 0, 7); x.stroke(); x.fillStyle = '#e6c2ff'; for (let i = 0; i < 8; i++) { const a = t * 1.5 + i * 0.785; x.fillRect(Math.round(cx + Math.cos(a) * 30), Math.round(feet + Math.sin(a) * 7), 2, 2); } }
+      if (tier >= 5) { for (let i = 0; i < 4; i++) { const y = 10 + ((t * 40 + i * 23) % 70); x.globalAlpha = 0.35; x.drawImage(this.c, 0, Math.round(y), W, 3, Math.round((R() - 0.5) * 8), Math.round(y), W, 3); } x.globalAlpha = 1; }
+    } else {
+      const C = ['#ffffff', '#c9f6ff', '#6fe3ff', '#3bb6ff'];
+      emit(1 + tier, () => this.P(W + 2, 28 + R() * 48, -90 - R() * 60, 0, 0.7, C[(R() * 2) | 0], 1, 0));
+      if (tier >= 1) { const n = [0, 2, 2, 4, 4, 6][tier]; for (let i = 1; i <= n; i++) this.ninja(cx - 16 - i * 7 * (1 + Math.sin(t * 5) * 0.2), ny, 0.5 / (1 + i * 0.6)); }
+      if (tier >= 2) { const ph = (t * 1.3) % 1, r = ph * 46; x.strokeStyle = 'rgba(180,240,255,' + (1 - ph) + ')'; x.lineWidth = 1; x.beginPath(); x.ellipse(cx, feet, r, r * 0.22, 0, 0, 7); x.stroke(); }
+      if (tier >= 4) { x.fillStyle = 'rgba(100,220,255,' + (0.14 + 0.06 * Math.sin(t * 9)) + ')'; x.fillRect(cx - 14, 14, 28, feet - 14); emit(3, () => this.P(cx + (R() - 0.5) * 26, feet, 0, -45 - R() * 25, 0.7, C[(R() * 4) | 0], 1, 0)); }
+      if (tier >= 5 && R() < 0.25) { x.strokeStyle = '#fffbd0'; x.lineWidth = 1; x.beginPath(); let lx = cx + (R() - 0.5) * 90, ly = 0; x.moveTo(lx, ly); while (ly < feet) { ly += 8; lx += (R() - 0.5) * 14; x.lineTo(lx, ly); } x.stroke(); this.shake = 0.1; }
+    }
+  }
+  // 前景 (角色前方)
+  front(dt, t, cx, ny, feet) {
+    const x = this.x, tier = this.tier, cy = ny + 20;
+    if (this.cat === '忍術' && tier >= 1) {
+      const n = [0, 1, 1, 3, 3, 5][tier];
+      for (let i = 0; i < n; i++) {
+        const a = t * (2 + tier * 0.4) + i * 6.283 / n, r = 26 + (tier >= 4 ? 6 : 0), bx = Math.round(cx + Math.cos(a) * r), by = Math.round(cy + Math.sin(a) * r * 0.55);
+        x.fillStyle = '#d7331c'; x.fillRect(bx - 3, by - 3, 6, 6); x.fillStyle = '#ff9a2a'; x.fillRect(bx - 2, by - 2, 4, 4); x.fillStyle = '#fff1b3'; x.fillRect(bx - 1, by - 1, 2, 2);
+        this.P(bx, by, (this.rand() - 0.5) * 10, -8, 0.4, '#ffb23d', 1, 0);
+      }
+    }
+    if (this.cat === '幻術' && tier >= 4) {
+      for (let i = 0; i < 3; i++) { const a = t * 0.8 + i * 2.1, ex = Math.round(cx + Math.cos(a) * 36), ey = Math.round(cy - 6 + Math.sin(a * 1.3) * 14); x.fillStyle = '#2a0f4a'; x.fillRect(ex - 4, ey - 2, 9, 5); x.fillStyle = '#f0d4ff'; x.fillRect(ex - 3, ey - 1, 7, 3); x.fillStyle = '#ff4fa8'; x.fillRect(ex - 1, ey - 1, 3, 3); x.fillStyle = '#000'; x.fillRect(ex, ey, 1, 1); }
+    }
+  }
+}
+// 一次性爆發特效 (突破畫面用)
+function burstOn(canvas, color, count) {
+  const x = canvas.getContext('2d'); const w = canvas.width, h = canvas.height; const ps = []; const r = Math.random;
+  for (let i = 0; i < count; i++) { const a = r() * 6.283, v = 20 + r() * 90; ps.push({ x: w / 2, y: h / 2, vx: Math.cos(a) * v, vy: Math.sin(a) * v, l: 1 + r() * 0.8, c: i % 3 ? color : '#fff', s: r() < 0.3 ? 3 : 2 }); }
+  let last = performance.now(), alive = true;
+  (function loop(n) { const dt = Math.min(0.05, (n - last) / 1000); last = n; x.clearRect(0, 0, w, h); alive = false; for (const p of ps) { p.l -= dt; if (p.l <= 0) continue; alive = true; p.vy += 30 * dt; p.x += p.vx * dt; p.y += p.vy * dt; x.globalAlpha = Math.min(1, p.l); x.fillStyle = p.c; x.fillRect(Math.round(p.x), Math.round(p.y), p.s, p.s); } x.globalAlpha = 1; if (alive && canvas.isConnected) requestAnimationFrame(loop); })(last);
+}
+
+/* ===== 音效 ===== */
+const Sfx = {
+  ctx: null, on: true,
+  init() { if (!this.ctx) { try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { } } if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); },
+  tone(f, d, type, v, when) { if (!this.on || !this.ctx) return; const c = this.ctx, t = c.currentTime + (when || 0), o = c.createOscillator(), g = c.createGain(); o.type = type || 'square'; o.frequency.value = f; g.gain.setValueAtTime(v || 0.06, t); g.gain.exponentialRampToValueAtTime(0.0001, t + d); o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + d + 0.02); },
+  tap() { this.tone(660, 0.05); },
+  start() { [392, 523, 659, 784].forEach((f, i) => this.tone(f, 0.12, 'square', 0.06, i * 0.07)); },
+  gem() { this.tone(988, 0.08, 'square', 0.05); this.tone(1319, 0.16, 'square', 0.05, 0.08); },
+  level() { [523, 659, 784, 1047, 1319].forEach((f, i) => this.tone(f, 0.18, 'square', 0.07, i * 0.09)); },
+  rank() { [392, 523, 659, 784, 1047, 784, 1047, 1319, 1568].forEach((f, i) => this.tone(f, 0.22, i > 5 ? 'sawtooth' : 'square', 0.06, i * 0.1)); },
+};
+if (false) module.exports = { NINJA };
+
+/* ===== 練習 · 介面與流程 ===== */
+const KEY = 'ninja.v1';
+const FXNAMES = { '忍術': ['火花', '火球', '炎輪', '炎陣', '龍炎', '業火'], '幻術': ['幻霧', '幻旋', '分身', '幻陣', '萬象', '天幻'], '體術': ['疾風', '殘影', '衝擊', '疾影', '氣焰', '雷神'] };
+const $app = document.getElementById('app'), $md = document.getElementById('md');
+function defaultState() { return { v: 1, skills: [], sessions: [], gems: 0, claimed: {}, active: null, pending: null, settings: { sound: true }, updated: 0 }; }
+let S = defaultState();
+const LOOKS = [{ name: '入門忍者', need: '初始外型' }, { name: '下忍', need: '任一術達 C 級' }, { name: '中忍', need: '任一術達 B 級' }, { name: '上忍', need: '任一術達 A 級' }];
+const nowTs = () => Date.now() + (S.timeShift || 0);
+let galCat = '忍術', galTier = 0, galLook = null;
+let tab = 'home', selId = null, stage = null, tickT = 0, lastResult = null, pendingPhoto = null, modalStage = null;
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+/* ---------- 儲存 ---------- */
+let dbDoc = null, dbCol = null, dbT = 0;
+function load() { try { const j = localStorage.getItem(KEY); if (j) S = Object.assign(defaultState(), JSON.parse(j)); } catch (e) { } }
+function save() {
+  S.updated = Date.now();
+  try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { }
+  clearTimeout(dbT); dbT = setTimeout(pushDb, 1500);
+}
+async function pushDb() { if (!dbDoc) return; try { await dbDoc.set({ json: JSON.stringify(S), updated: S.updated }); } catch (e) { } }
+function readSnap(snap) { if (!snap || snap.exists === false) return null; return typeof snap.data === 'function' ? snap.data() : (snap.data !== undefined ? snap.data : snap); }
+async function initDb() {
+  try {
+    if (typeof claude === 'undefined' || !claude.use) return;
+    const lim = p => Promise.race([p, new Promise(r => setTimeout(() => r(null), 10000))]);
+    const db = await lim(claude.use('db')), user = await lim(claude.use('user'));
+    if (!db || !user || !user.id) return;
+    const uid = await user.id();
+    dbCol = db.collection('data/users/' + uid); dbDoc = dbCol.doc('save');
+    const d = readSnap(await dbDoc.get());
+    if (d && d.json) {
+      const r = JSON.parse(d.json);
+      if ((r.updated || 0) > (S.updated || 0)) {
+        S = Object.assign(defaultState(), r);
+        try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { }
+        if (!$md.firstChild && !S.active && !S.pending) render();
+      }
+    } else if (S.skills.length || S.sessions.length) pushDb();
+  } catch (e) { }
+}
+function savePhoto(id, url) { try { localStorage.setItem('ninja.p.' + id, url); } catch (e) { } if (dbCol) { try { dbCol.doc('p_' + id).set({ d: url }); } catch (e) { } } }
+function getPhoto(id) { try { return localStorage.getItem('ninja.p.' + id); } catch (e) { return null; } }
+const photoReq = {};
+async function fetchPhoto(id, imgEl) {
+  if (photoReq[id] || !dbCol) return; photoReq[id] = 1;
+  try { const d = readSnap(await dbCol.doc('p_' + id).get()); if (d && d.d) { try { localStorage.setItem('ninja.p.' + id, d.d); } catch (e) { } if (imgEl && imgEl.isConnected) imgEl.src = d.d; } } catch (e) { }
+}
+function resizePhoto(file) {
+  return new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onerror = rej;
+    fr.onload = () => { const im = new Image(); im.onerror = rej; im.onload = () => { const m = 480, k = Math.min(1, m / Math.max(im.width, im.height)), c = document.createElement('canvas'); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); res(c.toDataURL('image/jpeg', 0.72)); }; im.src = fr.result; };
+    fr.readAsDataURL(file);
+  });
+}
+
+/* ---------- 小工具 ---------- */
+function icon(name) {
+  const g = {
+    home: ['...rr...', '..rrrr..', '.rrrrrr.', 'rrrrrrrr', '.wwwwww.', '.ww..ww.', '.ww..ww.', '.wwwwww.'],
+    skills: ['.yyyyyy.', 'yywwwwyy', '.wbbbbw.', '.wwwwww.', '.wbbbbw.', '.wwwwww.', 'yywwwwyy', '.yyyyyy.'],
+    train: ['...gg...', '..gwwg..', 'g.gwwg.g', 'ggwbbwgg', 'ggwbbwgg', 'g.gwwg.g', '..gwwg..', '...gg...'],
+    log: ['.rrrrrr.', 'rwwwwwwr', 'rwbbbbwr', 'rwwwwwwr', 'rwbbbbwr', 'rwwwwwwr', 'rwbbbwwr', '.rrrrrr.'],
+    pet: ['r......r', 'rr....rr', 'rrrrrrrr', 'rbrrrrbr', 'rrrrrrrr', 'rrryyrrr', 'rrrrrrrr', '.rrrrrr.'],
+    gate: ['rrrrrrrr', '.rrrrrr.', '..r..r..', 'rrrrrrrr', '..r..r..', '..r..r..', '..r..r..', '..r..r..'],
+  }[name];
+  return '<img src="' + spriteCanvas(g, PAL).toDataURL() + '" width="26" height="26" style="image-rendering:pixelated">';
+}
+function skillById(id) { return S.skills.find(s => s.id === id); }
+function titleHTML(s, withRank) {
+  const li = levelInfo(s.sec / 3600);
+  return '<span style="color:' + li.color + '">' + (withRank ? li.rankName + '　' : '') + esc(s.cat) + '．' + esc(s.name) + '之術（Lv.' + li.lv + '）</span>';
+}
+function bestSkill() { return S.skills.slice().sort((a, b) => b.sec - a.sec)[0] || null; }
+function toast(msg) { const d = document.createElement('div'); d.className = 'toast'; d.textContent = msg; document.body.appendChild(d); setTimeout(() => d.remove(), 2200); }
+function modal(html) { closeModal(); $md.innerHTML = '<div class="modal"><div class="box">' + html + '</div></div>'; }
+function closeModal() { if (modalStage) { modalStage.stop(); modalStage = null; } $md.innerHTML = ''; }
+function stats() { return computeStats(S.sessions, nowTs()); }
+const cfgJ = o => JSON.stringify(o).replace(/&/g, '&amp;').replace(/'/g, '&#39;');
+const skillLabel = s => s.cat + '．' + s.name + '之術';
+const rankColor = s => RANK_COLORS[levelInfo(s.sec / 3600).rank];
+function fxTier(s) { const r = levelInfo(s.sec / 3600).rank; return s.fx === undefined || s.fx === null ? r : Math.min(r, s.fx); }
+function lookIdx() { return ninjaRankIndex(S.skills); }
+function runBanner() {
+  if (!S.active) return '';
+  const s = skillById(S.active.skillId);
+  return '<div class="runbar" data-a="tab" data-v="train"><span class="blink">●</span> 修練中… 已持續 <b class="runtm">' + fmtDur((Date.now() - S.active.start) / 1000) + '</b>' + (s ? '<div style="font-size:13px;margin-top:2px">' + titleHTML(s, false) + '</div>' : '') + '<div class="dim" style="font-size:12px">點此回到修練畫面</div></div>';
+}
+
+/* ---------- 畫面 ---------- */
+function topbar() {
+  const nr = ninjaRankIndex(S.skills);
+  return '<div class="top"><span class="badge">' + NINJA_RANKS[nr] + '</span>' + (S.timeShift ? '<span class="badge" style="background:#6a3fc0">模擬 ' + dayKey(nowTs()).slice(5) + '</span>' : '') + '<span class="sp"></span><span class="gem"><i></i>' + (S.gems || 0) + '</span><button class="ibtn" data-a="settings">⚙</button></div>';
+}
+function nav() {
+  const items = [['home', '道場', 'home'], ['skills', '技能', 'skills'], ['train', '修練', 'train'], ['pet', '寵物', 'pet'], ['dungeon', '關卡', 'gate']];
+  return '<div class="nav">' + items.map(([k, l, ic]) => '<button data-a="tab" data-v="' + k + '" class="' + (tab === k || (k === 'home' && (tab === 'log' || tab === 'gallery')) ? 'on' : '') + '">' + icon(ic) + l + '</button>').join('') + '</div>';
+}
+function render() {
+  if (stage) { stage.stop(); stage = null; }
+  if (S.pending) tab = 'train';
+  const locked = S.pending;
+  let v = '';
+  if (tab === 'home') v = homeView(); else if (tab === 'skills') v = skillsView(); else if (tab === 'train') v = trainView(); else if (tab === 'log') v = logView(); else if (tab === 'pet') v = petView(); else if (tab === 'gallery') v = galleryView();
+  $app.innerHTML = (locked ? '' : topbar()) + '<div class="view">' + (tab !== 'train' ? runBanner() : '') + v + '</div>' + (locked ? '' : nav());
+  const cv = document.getElementById('st');
+  if (cv) {
+    stage = new Stage(cv);
+    const cfg = JSON.parse(cv.dataset.cfg || '{}');
+    stage.bonus = cfg.bonus || 1; stage.label = cfg.label || ''; stage.lcolor = cfg.lcolor || '#fff';
+    stage.set(cfg.cat || '忍術', cfg.tier || 0, !!cfg.cast, cfg.look || 0, !!cfg.train, !!cfg.once);
+    stage.start();
+    if (cfg.tap && cfg.once) cv.addEventListener('click', () => { stage.set(cfg.cat, cfg.tier || 0, false, cfg.look || 0, true, true); Sfx.start(); });
+    else if (cfg.tap) cv.addEventListener('click', () => { const st0 = stage; st0.set(cfg.cat || '忍術', cfg.tier || 0, true, cfg.look || 0, false); setTimeout(() => { if (stage === st0) st0.set(cfg.cat || '忍術', cfg.tier || 0, false, cfg.look || 0, false); }, 3000); Sfx.start(); });
+  }
+  document.querySelectorAll('img[data-pid]').forEach(i => { if (!i.getAttribute('src')) fetchPhoto(i.dataset.pid, i); });
+  clearInterval(tickT);
+  if (S.active) { tickT = setInterval(tick, 500); tick(); } else document.title = '練習';
+}
+function tick() {
+  if (!S.active) return;
+  const sec = Math.floor((Date.now() - S.active.start) / 1000);
+  const el = document.getElementById('tm'); if (el) el.textContent = fmtDur(sec);
+  document.querySelectorAll('.runtm').forEach(e => e.textContent = fmtDur(sec));
+  const hint = document.getElementById('qh'); if (hint) hint.textContent = sec >= QUALIFY_SEC ? '✔ 今日修練已達成（連續天數延續）' : '再修練 ' + fmtDur(QUALIFY_SEC - sec) + ' 即可延續連續天數';
+  document.title = '⏱ ' + fmtDur(sec) + '　練習';
+}
+
+function homeView() {
+  const st = stats(), b = bestSkill();
+  const cat = b ? b.cat : '忍術', tier = b ? fxTier(b) : 0;
+  let h = '<div class="stagewrap"><canvas id="st" class="stage" data-cfg=\'' + cfgJ({ cat, tier, tap: 1, look: lookIdx(), label: b ? skillLabel(b) : '', lcolor: b ? rankColor(b) : '#fff' }) + '\'></canvas><div class="ov">' + (b ? titleHTML(b, true) : '見習忍者') + '</div></div>';
+  if (!S.skills.length) {
+    h += '<div class="px"><h3>歡迎，見習忍者</h3><div class="dim" style="font-size:14px">每一次真實的修練，都會讓你的忍術升級。<br>先選定一項想精進的事，把它變成你的第一個忍術。</div><button class="btn" data-a="addSkill">創立第一個忍術</button></div>';
+    return h;
+  }
+  h += '<div class="px"><div class="grid3"><div class="stat"><b>' + st.streak + '</b><span>連續天數</span></div><div class="stat"><b>' + st.days + '</b><span>累積天數</span></div><div class="stat"><b>' + fmtHours(st.totalSec) + '</b><span>總小時</span></div></div></div>';
+  const q = Math.min(1, st.todaySec / QUEST_SEC), done = st.todaySec >= QUEST_SEC;
+  let msg = '';
+  if (!st.todayQualified && st.streak > 0) msg = '<div class="warn" style="font-size:13px;margin-top:8px">今天修練滿 5 分鐘，連續 ' + st.streak + ' 天才不會中斷</div>';
+  else {
+    const nx = STREAK_MS.find(m => m[0] > st.streak);
+    if (nx) msg = '<div class="dim" style="margin-top:8px">再 ' + (nx[0] - st.streak) + ' 天連續修練 → 獲得 ' + nx[1] + ' 勾玉</div>';
+  }
+  h += '<div class="px"><h3>今日任務</h3><div class="row" style="margin-bottom:6px"><span>修練滿 30 分鐘</span><span class="sp"></span><span class="gem"><i></i>+' + QUEST_GEMS + '</span></div><div class="bar" style="--c:#ffd43b"><i style="width:' + (q * 100) + '%"></i></div><div class="dim" style="margin-top:5px">' + (done ? '✔ 今日任務完成' : fmtDur(st.todaySec) + ' / 30:00') + '</div>' + msg + '</div>';
+  h += '<button class="btn" data-a="tab" data-v="train">' + (S.active ? '回到修練' : '開始修練') + '</button><div class="row"><button class="btn alt sm" data-a="go" data-v="log">修練紀錄</button><button class="btn alt sm" data-a="go" data-v="gallery">素材圖鑑</button></div>';
+  return h;
+}
+function skillsView() {
+  let h = '<div class="row" style="margin:12px 0 0"><h3 style="margin:0;color:var(--gold);font-weight:normal">技能</h3><span class="sp"></span><button class="btn sm" data-a="addSkill">＋ 新增技能</button></div>';
+  if (!S.skills.length) return h + '<div class="empty">還沒有任何忍術。<br>點右上角新增你的第一個技能。</div>';
+  for (const s of S.skills) {
+    const li = levelInfo(s.sec / 3600);
+    h += '<button class="skill" data-a="openSkill" data-v="' + s.id + '"><div class="nm">' + titleHTML(s, true) + '</div><div class="bar" style="--c:' + li.color + '"><i style="width:' + (li.progress * 100) + '%"></i></div><div class="dim" style="margin-top:5px">' + (li.isMax ? '已達最高境界' : '下一級還需 ' + ((li.need - li.into)).toFixed(1) + ' 小時') + '　累積 ' + fmtHours(s.sec) + 'h</div></button>';
+  }
+  return h;
+}
+function trainView() {
+  if (S.pending) return pendingView();
+  if (S.active) return runningView();
+  if (lastResult) return resultView();
+  if (!S.skills.length) return '<div class="empty" style="padding-top:60px">先到「技能」新增一個忍術，才能開始修練。<button class="btn" data-a="addSkill">新增技能</button></div>';
+  if (!selId || !skillById(selId)) selId = (S.sessions.length && skillById(S.sessions[S.sessions.length - 1].skillId)) ? S.sessions[S.sessions.length - 1].skillId : S.skills[0].id;
+  const sel = skillById(selId), li = levelInfo(sel.sec / 3600);
+  let h = '<div class="stagewrap"><canvas id="st" class="stage" data-cfg=\'' + cfgJ({ cat: sel.cat, tier: fxTier(sel), tap: 1, train: 1, once: 1, look: lookIdx(), bonus: damageBonus(sel.sec / 3600), label: skillLabel(sel), lcolor: rankColor(sel) }) + '\'></canvas></div><h3 style="color:var(--gold);font-weight:normal;margin:6px 0">選擇要修練的術</h3>';
+  for (const s of S.skills) h += '<button class="skill ' + (s.id === selId ? 'sel' : '') + '" data-a="selSkill" data-v="' + s.id + '"><div class="nm" style="margin:0">' + titleHTML(s, false) + '</div></button>';
+  h += '<button class="btn" data-a="startTrain">開始修練</button><div class="dim" style="text-align:center">計時以實際時間為準，切換頁面或鎖屏也不會停止</div>';
+  return h;
+}
+function runningView() {
+  const s = skillById(S.active.skillId), li = levelInfo(s.sec / 3600);
+  return '<div style="padding-top:14px;text-align:center"><div style="font-size:17px;margin:6px 0">' + titleHTML(s, false) + '</div><div class="stagewrap"><canvas id="st" class="stage" data-cfg=\'' + cfgJ({ cat: s.cat, tier: fxTier(s), train: 1, look: lookIdx(), bonus: damageBonus(s.sec / 3600), label: skillLabel(s), lcolor: rankColor(s) }) + '\'></canvas></div><div class="timer" id="tm">00:00</div><div class="dim" id="qh"></div><button class="btn gold" data-a="finish">完成修練</button><button class="btn alt sm" data-a="giveup">放棄</button><div class="dim" style="margin-top:8px">可以先去其他頁面看看，計時不會停止</div></div>';
+}
+function pendingView() {
+  const p = S.pending, s = skillById(p.skillId);
+  return '<div style="padding-top:16px"><div class="px"><h3>修練完成</h3><div style="font-size:16px">' + titleHTML(s, false) + '</div><div style="font-size:30px;margin:8px 0">' + fmtDur(p.sec) + '</div>' +
+    (p.sec < QUALIFY_SEC ? '<div class="warn" style="font-size:13px">未滿 5 分鐘，不計入連續天數（時數仍會累積）</div>' : '') + '</div>' +
+    '<div class="px"><h3>修練筆記（可略過）</h3><textarea id="note" placeholder="今天練了什麼、有什麼心得？"></textarea><div id="phbox">' + (pendingPhoto ? '<img class="photoprev" src="' + pendingPhoto + '">' : '') + '</div><div class="btn alt sm fileb">附上一張照片<input type="file" id="ph" accept="image/*"></div></div><button class="btn gold" data-a="savePending">收功</button></div>';
+}
+function resultView() {
+  const r = lastResult, s = skillById(r.session.skillId), li = r.after;
+  let h = '<div style="padding-top:16px"><div class="px" style="text-align:center"><h3>本次修練</h3><div style="font-size:17px">' + titleHTML(s, true) + '</div><div style="font-size:34px;margin:8px 0">+' + (r.session.sec / 60).toFixed(r.session.sec >= 3600 ? 0 : 1) + ' 分</div><div class="bar" style="--c:' + li.color + '"><i id="rbar" style="width:' + ((r.levelUp ? 0 : r.before.progress) * 100) + '%"></i></div><div class="dim" style="margin-top:6px">' + (li.isMax ? '已達最高境界' : '距離下一級還有 ' + (li.need - li.into).toFixed(1) + ' 小時') + '</div></div>';
+  if (r.rewards.length) h += '<div class="px"><h3>獲得勾玉 +' + r.gems + '</h3>' + r.rewards.map(x => '<div class="ms ok"><span>' + esc(x.label) + '</span><span>+' + x.gems + '</span></div>').join('') + '</div>';
+  const st = stats();
+  h += '<div class="px"><div class="grid3"><div class="stat"><b>' + st.streak + '</b><span>連續天數</span></div><div class="stat"><b>' + st.days + '</b><span>累積天數</span></div><div class="stat"><b>' + damageBonus(s.sec / 3600).toFixed(2) + '×</b><span>傷害加成</span></div></div></div>';
+  return h + '<button class="btn" data-a="backHome">回到道場</button></div>';
+}
+function logView() {
+  const st = stats();
+  let h = '<button class="btn alt sm" data-a="backHome" style="margin-top:12px">← 返回道場</button>' + '<div class="px"><h3>修練紀錄</h3><div class="grid3" style="grid-template-columns:repeat(4,1fr)"><div class="stat"><b>' + st.days + '</b><span>累積天</span></div><div class="stat"><b>' + st.streak + '</b><span>連續</span></div><div class="stat"><b>' + st.best + '</b><span>最長</span></div><div class="stat"><b>' + fmtHours(st.totalSec) + '</b><span>小時</span></div></div></div>';
+  // 熱度圖 12 週
+  const today = st.today, first = addDays(today, -83), dow = keyToDate(first).getDay();
+  let cells = '<i style="background:none"></i>'.repeat(dow);
+  for (let i = 0; i < 84; i++) { const k = addDays(first, i), d = st.dayMap[k]; let l = 0; if (d) l = d.sec >= 3600 ? 4 : d.sec >= QUEST_SEC ? 3 : d.qualify ? 2 : 1; cells += '<i class="l' + l + '" title="' + k + '"></i>'; }
+  h += '<div class="px"><h3>近 12 週</h3><div class="heat">' + cells + '</div></div>';
+  const hrs = st.totalSec / 3600, cl = S.claimed || {};
+  const ms = (arr, pre, val, unit) => arr.map(([n, g]) => '<div class="ms ' + (val >= n ? 'ok' : '') + '"><span>' + (val >= n ? '✔ ' : '') + (pre === 'hour' ? '累積 ' + n + ' 小時' : pre === 'streak' ? '連續 ' + n + ' 天' : '累積 ' + n + ' 天') + '</span><span>' + g + ' 勾玉</span></div>').join('');
+  h += '<div class="px"><h3>里程碑</h3>' + ms(STREAK_MS, 'streak', st.best) + '<div style="height:6px"></div>' + ms(DAYS_MS, 'days', st.days) + '<div style="height:6px"></div>' + ms(HOUR_MS, 'hour', hrs) + '</div>';
+  h += '<div class="px"><h3>歷程</h3>';
+  const list = S.sessions.slice().reverse().slice(0, 40);
+  if (!list.length) h += '<div class="empty">還沒有修練紀錄</div>';
+  for (const s of list) {
+    const sk = skillById(s.skillId), d = new Date(s.end);
+    h += '<div class="log"><div class="dim">' + (d.getMonth() + 1) + '/' + d.getDate() + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + '　' + Math.max(1, Math.round(s.sec / 60)) + ' 分鐘</div><div>' + (sk ? titleHTML(sk, false) : '（已刪除的技能）') + '</div>' + (s.note ? '<div style="font-size:14px;margin-top:3px;white-space:pre-wrap">' + esc(s.note) + '</div>' : '') + (s.photo ? '<img data-a="bigPhoto" data-v="' + s.photo + '" data-pid="' + s.photo + '" src="' + (getPhoto(s.photo) || '') + '" alt="">' : '') + '</div>';
+  }
+  return h + '</div>';
+}
+function galleryView() {
+  if (galLook === null) galLook = lookIdx();
+  const nr = lookIdx(), bestRank = c => Math.max(-1, ...S.skills.filter(s => s.cat === c).map(s => levelInfo(s.sec / 3600).rank));
+  const lookOK = galLook <= nr, fxOK = galTier <= bestRank(galCat);
+  let h = '<button class="btn alt sm" data-a="backHome" style="margin-top:12px">← 返回道場</button><h3 style="color:var(--gold);font-weight:normal;margin:6px 0">素材圖鑑</h3><div class="stagewrap"><canvas id="st" class="stage" data-cfg=\'' + cfgJ({ cat: galCat, tier: galTier, train: 1, look: galLook, label: galCat + '．' + FXNAMES[galCat][galTier], lcolor: RANK_COLORS[galTier] }) + '\'></canvas></div>';
+  h += '<div class="px"><div>' + galCat + '．' + FXNAMES[galCat][galTier] + '　<span style="color:' + RANK_COLORS[galTier] + '">' + RANKS[galTier] + '級</span>　<span class="dim">' + (fxOK ? '已解鎖' : '未解鎖（' + RANKS[galTier] + ' 級解鎖）') + '</span></div><div style="margin-top:4px">' + LOOKS[galLook].name + '　<span class="dim">' + LOOKS[galLook].need + '　' + (lookOK ? '已解鎖' : '未解鎖') + '</span></div></div>';
+  h += '<div class="px"><h3>忍者外型</h3><div class="chips">' + LOOKS.map((l, i) => '<button class="chip ' + (i === galLook ? 'on' : '') + (i > nr ? ' lock' : '') + '" data-a="gal" data-v="look:' + i + '">' + (i > nr ? '🔒' : '') + l.name + '</button>').join('') + '</div>';
+  h += '<h3 style="margin-top:12px">技能特效</h3><div class="chips">' + Object.keys(CATS).map(c => '<button class="chip ' + (c === galCat ? 'on' : '') + '" style="color:' + CATS[c].color + '" data-a="gal" data-v="cat:' + c + '">' + c + '</button>').join('') + '</div><div class="chips">' + FXNAMES[galCat].map((n, i) => '<button class="chip ' + (i === galTier ? 'on' : '') + (i > bestRank(galCat) ? ' lock' : '') + '" style="color:' + RANK_COLORS[i] + '" data-a="gal" data-v="tier:' + i + '">' + (i > bestRank(galCat) ? '🔒' : '') + RANKS[i] + '．' + n + '</button>').join('') + '</div><div class="dim">所有素材都可預覽；新增的特效與外觀會自動加入這裡。</div></div>';
+  return h;
+}
+function petView() { return '<div class="empty" style="padding-top:90px"><div style="font-size:18px;color:var(--ink)">寵物</div><div style="margin-top:8px">敬請期待</div></div>'; }
+
+/* ---------- 技能 modal ---------- */
+let newCat = '忍術';
+function addSkillModal() {
+  newCat = '忍術';
+  modal('<h2>新增技能</h2><div class="dim">名稱格式：類別．○○之術</div><input type="text" id="sn" maxlength="6" placeholder="例如：滑板、畫畫、日文" style="margin:10px 0"><div class="cats">' +
+    Object.keys(CATS).map(c => '<button class="cat ' + (c === newCat ? 'on' : '') + '" data-a="pickCat" data-v="' + c + '"><b style="color:' + CATS[c].color + '">' + c + '</b>' + CATS[c].desc + '</button>').join('') +
+    '</div><div class="dim">類別決定施展時的特效風格。新技能從 D 級 Lv.1 開始。</div><button class="btn" data-a="createSkill">創立</button><button class="btn alt" data-a="closeModal">取消</button>');
+}
+let skFx = 0;
+function skillModal(id) {
+  const s = skillById(id); if (!s) return;
+  const li = levelInfo(s.sec / 3600);
+  const bonus = damageBonus(s.sec / 3600);
+  let h = '<h2>' + titleHTML(s, true) + '</h2><div class="chips">' + RANKS.map((r, i) => '<span class="chip ' + (i === li.rank ? 'on' : '') + '" style="color:' + RANK_COLORS[i] + '">' + r + '</span>').join('') + '</div>' +
+    '<div class="bar" style="--c:' + li.color + '"><i style="width:' + (li.progress * 100) + '%"></i></div><div class="dim" style="margin:6px 0">累積 ' + fmtHours(s.sec) + ' 小時　傷害加成 ' + (bonus * 100).toFixed(0) + '%<br>' + (li.isMax ? '已達最高境界' : '下一級還需 ' + (li.need - li.into).toFixed(1) + ' 小時') + '</div>' +
+    '<h3 style="color:var(--gold);font-weight:normal;margin:12px 0 4px">施術特效</h3><canvas id="mst" class="stage" style="margin-bottom:8px"></canvas><div class="chips" id="fxchips"></div><div class="dim">點選已解鎖的特效即可裝備（◆ 為目前裝備），修練畫面會用它攻擊木樁</div>' +
+    '<button class="btn alt" data-a="closeModal">關閉</button><button class="btn alt sm" data-a="delSkill" data-v="' + s.id + '" style="color:#ff9b97">刪除技能</button>';
+  modal(h);
+  const cv = document.getElementById('mst'); skFx = fxTier(s); modalStage = new Stage(cv); modalStage.bonus = damageBonus(s.sec / 3600); modalStage.label = skillLabel(s); modalStage.lcolor = rankColor(s); modalStage.set(s.cat, skFx, true, lookIdx(), true); modalStage.start();
+  modalStage.skill = s;
+  drawFxChips();
+}
+function drawFxChips() {
+  const s = modalStage.skill, li = levelInfo(s.sec / 3600);
+  document.getElementById('fxchips').innerHTML = FXNAMES[s.cat].map((n, i) => '<button class="chip ' + (i <= li.rank ? '' : 'lock') + (i === skFx ? ' on' : '') + '" style="color:' + RANK_COLORS[i] + '" data-a="fx" data-v="' + i + '">' + (i <= li.rank ? '' : '🔒') + (i === fxTier(s) ? '◆' : '') + n + '</button>').join('');
+}
+function settingsModal() {
+  modal('<h2>設定</h2><div class="row" style="margin-bottom:10px"><span>音效</span><span class="sp"></span><button class="btn alt sm" data-a="toggleSound">' + (S.settings.sound ? '開啟' : '關閉') + '</button></div>' +
+    '<h3 style="color:var(--gold);font-weight:normal;margin:8px 0">備份</h3><div class="dim" style="margin-bottom:6px">複製下方文字存好，換裝置時貼到「還原」。（照片不含在備份內）</div><textarea id="bk" readonly style="min-height:60px">' + esc(JSON.stringify({ v: 1, skills: S.skills, sessions: S.sessions, gems: S.gems, claimed: S.claimed, settings: S.settings })) + '</textarea><button class="btn alt sm" data-a="copyBackup">複製備份</button>' +
+    '<h3 style="color:var(--gold);font-weight:normal;margin:10px 0 6px">還原</h3><textarea id="rs" placeholder="貼上備份文字" style="min-height:60px"></textarea><button class="btn alt sm" data-a="restore">還原資料</button>' +
+    testSection() + '<h3 style="color:var(--gold);font-weight:normal;margin:10px 0 6px">重置</h3><button class="btn alt sm" data-a="reset" style="color:#ff9b97">清除所有資料</button><button class="btn" data-a="closeModal">關閉</button>');
+}
+function testSection() {
+  if (!S.skills.length) return '';
+  const sim = dayKey(nowTs());
+  let h = '<h3 style="color:var(--gold);font-weight:normal;margin:10px 0 6px">測試工具（臨時）</h3><div class="dim" style="margin-bottom:6px">增加時數、模擬修練都會產生標示（模擬）的紀錄（計入今日任務、連續天數、勾玉），可一鍵清除；把時數往下調則直接扣除。</div>';
+  h += S.skills.map(k => '<div style="margin:8px 0"><div style="margin-bottom:4px">' + titleHTML(k, true) + '　<span class="dim">' + (k.sec / 3600).toFixed(1) + 'h</span></div><div class="row"><input type="text" inputmode="decimal" id="th_' + k.id + '" placeholder="小時" style="width:80px"><button class="btn alt sm" data-a="thSet" data-v="' + k.id + '">設定</button><button class="btn alt sm" data-a="thAdd" data-v="' + k.id + '|1">+1h</button><button class="btn alt sm" data-a="thAdd" data-v="' + k.id + '|10">+10h</button></div><div class="row"><button class="btn alt sm" data-a="simSes" data-v="' + k.id + '">模擬修練 30 分</button></div></div>').join('');
+  h += '<div style="margin:10px 0"><div>模擬日期：' + sim + (S.timeShift ? '（+' + Math.round(S.timeShift / 864e5) + ' 天）' : '（今天）') + '</div><div class="row" style="flex-wrap:wrap"><button class="btn alt sm" data-a="simDay" data-v="1">+1 天</button><button class="btn alt sm" data-a="simDay" data-v="7">+7 天</button><button class="btn alt sm" data-a="simDay" data-v="0">回到今天</button></div>';
+  h += '<div class="row" style="margin-top:6px"><input type="text" inputmode="numeric" id="simN" placeholder="天數" style="width:80px"><button class="btn alt sm" data-a="simRun">連續模擬 N 天（每天 30 分）</button></div><div class="dim">連續模擬使用「修練」頁目前選擇的技能；中間想斷掉就先按「+1 天」略過一天。</div><button class="btn alt sm" data-a="simClear" style="color:#ff9b97">清除所有模擬紀錄</button></div>';
+  return h;
+}
+async function setHours(id, hours) {
+  const k = skillById(id); if (!k) return;
+  hours = Math.max(0, Math.min(MAX_HOURS, hours));
+  const target = Math.round(hours * 3600), delta = target - Math.round(k.sec);
+  let r = null;
+  if (delta > 0) { const end = nowTs(); r = addSession(S, id, delta, end - delta * 1000, end, '（模擬）'); r.session.sim = 1; }
+  else { k.sec = target; }
+  save(); closeModal(); render();
+  if (r && (r.levelUp || r.ninjaUp)) await breakthroughs(r);
+  settingsModal();
+}
+function confirmModal(msg, yesAct, yesLabel, noLabel, v) {
+  modal('<h2>確認</h2><div style="margin:8px 0 14px">' + msg + '</div><button class="btn" data-a="' + yesAct + '" data-v="' + (v || '') + '">' + yesLabel + '</button><button class="btn alt" data-a="closeModal">' + (noLabel || '取消') + '</button>');
+}
+
+/* ---------- 突破畫面 ---------- */
+function showBT(opts) {
+  return new Promise(res => {
+    const d = document.createElement('div'); d.className = 'bt';
+    d.innerHTML = (opts.grand ? '<div class="rays"></div>' : '') + '<canvas class="fx" width="160" height="100"></canvas>' + (opts.big ? '<div class="big" style="color:' + opts.color + '">' + opts.big + '</div>' : '') + '<h1 style="color:' + opts.color + '">' + opts.h + '</h1>' + opts.body + '<div class="tap">輕點繼續</div>';
+    document.body.appendChild(d);
+    const cv = d.querySelector('canvas.fx'); burstOn(cv, opts.color, opts.grand ? 160 : 70); setTimeout(() => burstOn(cv, opts.color, opts.grand ? 120 : 40), 600);
+    if (opts.grand) Sfx.rank(); else Sfx.level();
+    let ok = false; setTimeout(() => ok = true, 700);
+    d.addEventListener('click', () => { if (!ok) return; d.remove(); res(); });
+  });
+}
+async function breakthroughs(r) {
+  const sk = skillById(r.session.skillId);
+  if (r.levelUp) {
+    const a = r.after, b = r.before;
+    if (r.rankUp) await showBT({ grand: 1, color: a.color, big: a.rankName, h: '晉級！', body: '<div class="nm">' + titleHTML(sk, false) + '</div><div class="lv" style="color:' + a.color + '">' + b.rankName + '級 → ' + a.rankName + '級</div><div class="dim">解鎖特效「' + FXNAMES[sk.cat][a.rank] + '」</div>' });
+    else await showBT({ color: a.color, h: '突破！', body: '<div class="nm">' + titleHTML(sk, false) + '</div><div class="lv">Lv.' + b.lv + ' → Lv.' + a.lv + '</div>' });
+  }
+  if (r.ninjaUp) await showBT({ grand: 1, color: '#ffd43b', big: NINJA_RANKS[r.ninjaRank], h: '晉升！', body: '<div class="nm">你成為了 ' + NINJA_RANKS[r.ninjaRank] + '</div>' });
+  if (r.gems) Sfx.gem();
+}
+
+/* ---------- 動作 ---------- */
+const A = {
+  tab(v) { if (v === 'dungeon') { modal('<h2>關卡</h2><div style="margin:10px 0 16px;font-size:17px;text-align:center">關卡功能開發中</div><button class="btn alt" data-a="closeModal">好</button>'); return; } tab = v; lastResult = null; render(); window.scrollTo(0, 0); },
+  go(v) { tab = v; render(); window.scrollTo(0, 0); },
+  gal(v) { const [k, x] = v.split(':'); if (k === 'look') galLook = +x; else if (k === 'cat') galCat = x; else galTier = +x; render(); },
+  backHome() { tab = 'home'; lastResult = null; render(); window.scrollTo(0, 0); },
+  addSkill() { addSkillModal(); },
+  pickCat(v) { newCat = v; document.querySelectorAll('.cat').forEach(e => e.classList.toggle('on', e.dataset.v === v)); },
+  createSkill() {
+    let n = (document.getElementById('sn').value || '').trim().replace(/\s+/g, '').replace(/之術$/, '');
+    if (!n) { toast('請輸入技能名稱'); return; }
+    if (S.skills.some(s => s.name === n && s.cat === newCat)) { toast('已有同名技能'); return; }
+    S.skills.push({ id: 'k' + Date.now().toString(36), name: n, cat: newCat, sec: 0, created: Date.now() });
+    save(); closeModal(); if (tab === 'home' || tab === 'train') { selId = S.skills[S.skills.length - 1].id; } render(); toast('新增了 ' + newCat + '．' + n + '之術');
+  },
+  openSkill(v) { skillModal(v); },
+  fx(v) { const i = +v, s = modalStage.skill, li = levelInfo(s.sec / 3600); if (i > li.rank) { toast('達到 ' + RANKS[i] + ' 級解鎖'); return; } skFx = i; s.fx = i; save(); modalStage.set(s.cat, i, true, lookIdx(), true); drawFxChips(); toast('已裝備「' + FXNAMES[s.cat][i] + '」'); },
+  delSkill(v) { confirmModal('刪除這個技能？已累積的時數會一併消失，修練歷程保留。', 'delSkillYes', '確定刪除', '取消', v); },
+  delSkillYes(v) { S.skills = S.skills.filter(s => s.id !== v); save(); closeModal(); render(); },
+  closeModal() { closeModal(); },
+  selSkill(v) { selId = v; render(); },
+  startTrain() { Sfx.init(); Sfx.start(); S.active = { skillId: selId, start: Date.now() }; tab = 'train'; save(); render(); },
+  finish() {
+    const sec = Math.floor((Date.now() - S.active.start) / 1000);
+    if (sec < 60) { modal('<h2>時間太短</h2><div style="margin:8px 0 14px">修練不滿 1 分鐘，不會被記錄。</div><button class="btn" data-a="closeModal">繼續修練</button><button class="btn alt" data-a="giveupYes">放棄這次</button>'); return; }
+    S.pending = { skillId: S.active.skillId, start: S.active.start, end: nowTs(), sec }; S.active = null; pendingPhoto = null; save(); render();
+  },
+  giveup() { confirmModal('放棄這次修練？時間不會被記錄。', 'giveupYes', '放棄', '繼續修練'); },
+  giveupYes() { S.active = null; save(); closeModal(); tab = 'train'; render(); },
+  savePending() {
+    const p = S.pending; if (!p) return;
+    const note = (document.getElementById('note') || {}).value || '';
+    let pid = null; if (pendingPhoto) { pid = 'p' + p.end.toString(36); savePhoto(pid, pendingPhoto); }
+    const r = addSession(S, p.skillId, p.sec, p.start, p.end, note.trim(), pid);
+    S.pending = null; pendingPhoto = null; lastResult = r; save(); render();
+    setTimeout(() => { const b = document.getElementById('rbar'); if (b) b.style.width = (r.after.progress * 100) + '%'; }, 100);
+    breakthroughs(r);
+  },
+  settings() { settingsModal(); },
+  simDay(v) { S.timeShift = +v === 0 ? 0 : (S.timeShift || 0) + (+v) * 864e5; save(); render(); settingsModal(); },
+  async simSes(v) {
+    const k = skillById(v); if (!k) return; const nb = ninjaRankIndex(S.skills), b = levelInfo(k.sec / 3600), end = nowTs();
+    const r = addSession(S, v, 1800, end - 1800e3, end, '（模擬）'); r.session.sim = 1; save(); render();
+    await breakthroughs(r); settingsModal();
+  },
+  async simRun() {
+    const n = Math.max(1, Math.min(120, parseInt(document.getElementById('simN').value, 10) || 0)); if (!n) { toast('請輸入天數'); return; }
+    const id = (selId && skillById(selId)) ? selId : S.skills[0].id, k = skillById(id), b = levelInfo(k.sec / 3600), nb = ninjaRankIndex(S.skills); let g = 0;
+    for (let i = 0; i < n; i++) { const end = nowTs(), r = addSession(S, id, 1800, end - 1800e3, end, '（模擬）'); r.session.sim = 1; g += r.gems; if (i < n - 1) S.timeShift = (S.timeShift || 0) + 864e5; }
+    save(); render(); const a = levelInfo(k.sec / 3600), na = ninjaRankIndex(S.skills);
+    toast('已模擬 ' + n + ' 天，勾玉 +' + g);
+    if (a.idx > b.idx || na > nb) await breakthroughs({ session: { skillId: id }, before: b, after: a, levelUp: a.idx > b.idx, rankUp: a.rank > b.rank, ninjaUp: na > nb, ninjaRank: na, gems: 0 });
+    settingsModal();
+  },
+  simClear() {
+    for (const x of S.sessions.filter(x => x.sim)) { const k = skillById(x.skillId); if (k) k.sec = Math.max(0, k.sec - x.sec); }
+    S.sessions = S.sessions.filter(x => !x.sim); S.timeShift = 0;
+    const all = pendingRewards({ sessions: S.sessions, claimed: {} }, nowTs()), keep = {}; let g = 0;
+    for (const r of all) { keep[r.key] = 1; g += r.gems; }
+    S.claimed = keep; S.gems = g; save(); render(); settingsModal(); toast('已清除模擬紀錄');
+  },
+  thSet(v) { const h = parseFloat((document.getElementById('th_' + v).value || '').trim()); if (isNaN(h)) { toast('請輸入小時數'); return; } setHours(v, h); },
+  thAdd(v) { const [id, n] = v.split('|'), k = skillById(id); setHours(id, k.sec / 3600 + (+n)); },
+  toggleSound() { S.settings.sound = !S.settings.sound; Sfx.on = S.settings.sound; save(); settingsModal(); },
+  copyBackup() { const t = document.getElementById('bk'); t.select(); let ok = false; try { ok = document.execCommand('copy'); } catch (e) { } if (!ok && navigator.clipboard) { navigator.clipboard.writeText(t.value).then(() => toast('已複製'), () => toast('請手動選取複製')); return; } toast(ok ? '已複製' : '請手動選取複製'); },
+  restore() {
+    try {
+      const o = JSON.parse(document.getElementById('rs').value.trim());
+      if (!o || !Array.isArray(o.skills) || !Array.isArray(o.sessions)) throw 0;
+      S = Object.assign(defaultState(), o, { active: null, pending: null }); save(); closeModal(); tab = 'home'; render(); toast('已還原');
+    } catch (e) { toast('備份格式不正確'); }
+  },
+  reset() { confirmModal('清除所有技能與紀錄？此動作無法復原。', 'resetYes', '清除', '取消'); },
+  resetYes() { S = defaultState(); selId = null; save(); closeModal(); tab = 'home'; render(); },
+  bigPhoto(v) { const u = getPhoto(v); if (u) modal('<img src="' + u + '" style="width:100%;display:block"><button class="btn alt" data-a="closeModal">關閉</button>'); },
+};
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-a]'); if (!t) return;
+  Sfx.init(); if (t.dataset.a !== 'startTrain') Sfx.tap();
+  const f = A[t.dataset.a]; if (f) f(t.dataset.v, t, e);
+});
+document.addEventListener('change', async e => {
+  if (e.target.id !== 'ph' || !e.target.files[0]) return;
+  try { pendingPhoto = await resizePhoto(e.target.files[0]); document.getElementById('phbox').innerHTML = '<img class="photoprev" src="' + pendingPhoto + '">'; } catch (er) { toast('照片讀取失敗'); }
+});
+document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
+
+load(); Sfx.on = S.settings.sound !== false;
+render();
+document.querySelectorAll('img[data-pid]').forEach(i => { if (!i.getAttribute('src')) fetchPhoto(i.dataset.pid, i); });
+initDb();
+
+</script><script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})});}</script></body></html>
