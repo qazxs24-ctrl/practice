@@ -8,7 +8,7 @@ body{display:flex;justify-content:center;min-height:100vh}
 #app{width:100%;max-width:480px;min-height:100vh;background:var(--bg);position:relative;padding-bottom:84px;overflow-x:hidden}
 button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
 canvas{image-rendering:pixelated;image-rendering:crisp-edges}
-.top{display:flex;align-items:center;gap:8px;padding:10px 12px;position:sticky;top:0;z-index:5;background:linear-gradient(#0d1029,#0d1029ee)}
+.top{display:flex;align-items:center;gap:8px;padding:calc(10px + env(safe-area-inset-top)) 12px 10px;position:sticky;top:0;z-index:5;background:linear-gradient(#0d1029,#0d1029ee)}
 .badge{padding:3px 8px;background:var(--red);color:#fff;box-shadow:0 0 0 2px var(--shadow);font-size:13px}
 .sp{flex:1}
 .gem{display:flex;align-items:center;gap:5px;padding:3px 8px;background:var(--p1);box-shadow:0 0 0 2px var(--ln)}
@@ -84,6 +84,10 @@ textarea{min-height:90px;resize:vertical}
 .runbar{margin:10px 0;padding:10px 12px;background:#3a1220;box-shadow:0 0 0 3px var(--shadow),inset 0 0 0 2px var(--red);cursor:pointer}
 .runbar b{font-size:20px;font-weight:normal;color:#fff}
 .runbar .blink{color:var(--red);animation:blink 1s steps(2) infinite}
+.sa{padding-top:calc(12px + env(safe-area-inset-top))}
+.modal{padding-top:calc(18px + env(safe-area-inset-top))}
+.bt{padding-top:calc(20px + env(safe-area-inset-top))}
+.skl{position:absolute;z-index:2;pointer-events:none;white-space:nowrap;font-size:clamp(14px,4.4vw,19px);letter-spacing:1px;padding:2px 9px;background:rgba(5,7,26,.74);box-shadow:0 0 0 2px #000;text-shadow:2px 0 #000,-2px 0 #000,0 2px #000,0 -2px #000;opacity:0;left:50%;top:34%}
 </style></head><body><div id="app"></div><div id="md"></div>
 <script>/* ===== 練習 · 純邏輯 (可在 node 測試) ===== */
 const RANKS = ['D', 'C', 'B', 'A', 'S', 'SS'];
@@ -98,7 +102,7 @@ const NINJA_RANKS = ['入門忍者', '下忍', '中忍', '上忍'];
 const MAX_HOURS = 1000;
 const DAY_START_HOUR = 5;
 const QUALIFY_SEC = 5 * 60;
-const QUEST_SEC = 30 * 60;
+const QUEST_SEC = 15 * 60;
 const QUEST_GEMS = 3;
 
 // 每個 Lv 的起始累積小時 (共30級)
@@ -185,7 +189,7 @@ function pendingRewards(state, now) {
   const hours = st.totalSec / 3600;
   for (const [h, g] of HOUR_MS) if (hours >= h && !claimed['hour' + h]) out.push({ key: 'hour' + h, gems: g, label: '累積修練 ' + h + ' 小時' });
   for (const [d, g] of DAYS_MS) if (st.days >= d && !claimed['days' + d]) out.push({ key: 'days' + d, gems: g, label: '累積修練 ' + d + ' 天' });
-  // 每日任務 (今天達成 30 分鐘)
+  // 每日任務 (今天達成 15 分鐘)
   const dm = st.dayMap;
   for (const k of Object.keys(dm)) if (dm[k].sec >= QUEST_SEC && !claimed['q:' + k]) out.push({ key: 'q:' + k, gems: QUEST_GEMS, label: '每日任務達成' });
   return out;
@@ -380,19 +384,18 @@ class Stage {
     }
     for (let i = this.dmgs.length - 1; i >= 0; i--) { const d = this.dmgs[i]; d.life -= dt; d.y -= 16 * dt; if (d.life <= 0) { this.dmgs.splice(i, 1); continue; } x.globalAlpha = Math.min(1, d.life * 2); x.font = 'bold 10px monospace'; x.lineWidth = 3; x.strokeStyle = '#000'; x.strokeText('-' + d.v, d.x, d.y); x.fillStyle = '#ffe27a'; x.fillText('-' + d.v, d.x, d.y); }
     x.globalAlpha = 1;
-    if (this.label && this.casting) {
-      let a = 1; const p = this._lp;
-      if (p !== null) a = Math.max(0, Math.min(1, (p - 0.1) / 0.25, (1.9 - p) / 0.3));
-      if (a > 0) {
-        x.globalAlpha = a; x.font = 'bold 9px DotGothic16, monospace'; x.textBaseline = 'alphabetic';
-        const w = Math.ceil(x.measureText(this.label).width), lx = Math.round(80 - w / 2), ly = Math.round(15 - (1 - a) * 4);
-        x.fillStyle = 'rgba(5,7,26,0.7)'; x.fillRect(lx - 4, ly - 10, w + 8, 14);
-        x.fillStyle = this.lcolor; x.fillRect(lx - 4, ly - 10, 1, 14); x.fillRect(lx + w + 3, ly - 10, 1, 14);
-        x.lineWidth = 2; x.strokeStyle = '#000'; x.strokeText(this.label, lx, ly); x.fillStyle = this.lcolor; x.fillText(this.label, lx, ly);
-        x.globalAlpha = 1;
-      }
-    }
+    this.updateLabel(cx);
     if (this.flash > 0) { x.fillStyle = 'rgba(255,255,255,' + Math.min(0.8, this.flash) + ')'; x.fillRect(0, 0, W, H); this.flash -= dt * 2.2; }
+  }
+  updateLabel(cx) {
+    if (!this.label || !this.casting) { if (this.lab) this.lab.style.opacity = 0; return; }
+    if (!this.lab) { const par = this.c.parentNode; if (!par) return; this.lab = document.createElement('div'); this.lab.className = 'skl'; par.appendChild(this.lab); }
+    const txt = this.label + '！'; if (this.lab.textContent !== txt) this.lab.textContent = txt;
+    this.lab.style.color = this.lcolor;
+    let a = 1; const p = this._lp; if (p !== null) a = Math.max(0, Math.min(1, (p - 0.1) / 0.25, (1.9 - p) / 0.3));
+    const cw = this.c.clientWidth || 320, hw = (this.lab.offsetWidth || 0) / 2; let px = cx / 160 * cw; px = Math.max(hw + 4, Math.min(cw - hw - 4, px));
+    this.lab.style.left = px + 'px'; this.lab.style.top = '34%'; this.lab.style.opacity = a;
+    this.lab.style.transform = 'translate(-50%, calc(-100% + ' + ((1 - a) * -6).toFixed(1) + 'px))';
   }
   dummy(dt) {
     const x = this.x, sh = this.dshake > 0 ? Math.round(Math.sin(this.t * 60) * 2 * this.dshake / 0.45) : 0, c = 118 + sh;
@@ -589,7 +592,7 @@ function render() {
   const locked = S.pending;
   let v = '';
   if (tab === 'home') v = homeView(); else if (tab === 'skills') v = skillsView(); else if (tab === 'train') v = trainView(); else if (tab === 'log') v = logView(); else if (tab === 'pet') v = petView(); else if (tab === 'gallery') v = galleryView();
-  $app.innerHTML = (locked ? '' : topbar()) + '<div class="view">' + (tab !== 'train' ? runBanner() : '') + v + '</div>' + (locked ? '' : nav());
+  $app.innerHTML = (locked ? '' : topbar()) + '<div class="view' + (locked ? ' sa' : '') + '">' + (tab !== 'train' ? runBanner() : '') + v + '</div>' + (locked ? '' : nav());
   const cv = document.getElementById('st');
   if (cv) {
     stage = new Stage(cv);
@@ -629,7 +632,7 @@ function homeView() {
     const nx = STREAK_MS.find(m => m[0] > st.streak);
     if (nx) msg = '<div class="dim" style="margin-top:8px">再 ' + (nx[0] - st.streak) + ' 天連續修練 → 獲得 ' + nx[1] + ' 勾玉</div>';
   }
-  h += '<div class="px"><h3>今日任務</h3><div class="row" style="margin-bottom:6px"><span>修練滿 30 分鐘</span><span class="sp"></span><span class="gem"><i></i>+' + QUEST_GEMS + '</span></div><div class="bar" style="--c:#ffd43b"><i style="width:' + (q * 100) + '%"></i></div><div class="dim" style="margin-top:5px">' + (done ? '✔ 今日任務完成' : fmtDur(st.todaySec) + ' / 30:00') + '</div>' + msg + '</div>';
+  h += '<div class="px"><h3>今日任務</h3><div class="row" style="margin-bottom:6px"><span>修練滿 15 分鐘</span><span class="sp"></span><span class="gem"><i></i>+' + QUEST_GEMS + '</span></div><div class="bar" style="--c:#ffd43b"><i style="width:' + (q * 100) + '%"></i></div><div class="dim" style="margin-top:5px">' + (done ? '✔ 今日任務完成' : fmtDur(st.todaySec) + ' / 15:00') + '</div>' + msg + '</div>';
   h += '<button class="btn" data-a="tab" data-v="train">' + (S.active ? '回到修練' : '開始修練') + '</button><div class="row"><button class="btn alt sm" data-a="go" data-v="log">修練紀錄</button><button class="btn alt sm" data-a="go" data-v="gallery">素材圖鑑</button></div>';
   return h;
 }
@@ -675,11 +678,7 @@ function resultView() {
 function logView() {
   const st = stats();
   let h = '<button class="btn alt sm" data-a="backHome" style="margin-top:12px">← 返回道場</button>' + '<div class="px"><h3>修練紀錄</h3><div class="grid3" style="grid-template-columns:repeat(4,1fr)"><div class="stat"><b>' + st.days + '</b><span>累積天</span></div><div class="stat"><b>' + st.streak + '</b><span>連續</span></div><div class="stat"><b>' + st.best + '</b><span>最長</span></div><div class="stat"><b>' + fmtHours(st.totalSec) + '</b><span>小時</span></div></div></div>';
-  // 熱度圖 12 週
-  const today = st.today, first = addDays(today, -83), dow = keyToDate(first).getDay();
-  let cells = '<i style="background:none"></i>'.repeat(dow);
-  for (let i = 0; i < 84; i++) { const k = addDays(first, i), d = st.dayMap[k]; let l = 0; if (d) l = d.sec >= 3600 ? 4 : d.sec >= QUEST_SEC ? 3 : d.qualify ? 2 : 1; cells += '<i class="l' + l + '" title="' + k + '"></i>'; }
-  h += '<div class="px"><h3>近 12 週</h3><div class="heat">' + cells + '</div></div>';
+  h += '<div class="px"><h3>近 7 日修練時間</h3>' + weekChart(st) + '</div>';
   const hrs = st.totalSec / 3600, cl = S.claimed || {};
   const ms = (arr, pre, val, unit) => arr.map(([n, g]) => '<div class="ms ' + (val >= n ? 'ok' : '') + '"><span>' + (val >= n ? '✔ ' : '') + (pre === 'hour' ? '累積 ' + n + ' 小時' : pre === 'streak' ? '連續 ' + n + ' 天' : '累積 ' + n + ' 天') + '</span><span>' + g + ' 勾玉</span></div>').join('');
   h += '<div class="px"><h3>里程碑</h3>' + ms(STREAK_MS, 'streak', st.best) + '<div style="height:6px"></div>' + ms(DAYS_MS, 'days', st.days) + '<div style="height:6px"></div>' + ms(HOUR_MS, 'hour', hrs) + '</div>';
@@ -702,6 +701,26 @@ function galleryView() {
   h += '<h3 style="margin-top:12px">技能特效</h3><div class="chips">' + Object.keys(CATS).map(c => '<button class="chip ' + (c === galCat ? 'on' : '') + '" style="color:' + CATS[c].color + '" data-a="gal" data-v="cat:' + c + '">' + c + '</button>').join('') + '</div><div class="chips">' + FXNAMES[galCat].map((n, i) => '<button class="chip ' + (i === galTier ? 'on' : '') + (i > bestRank(galCat) ? ' lock' : '') + '" style="color:' + RANK_COLORS[i] + '" data-a="gal" data-v="tier:' + i + '">' + (i > bestRank(galCat) ? '🔒' : '') + RANKS[i] + '．' + n + '</button>').join('') + '</div><div class="dim">所有素材都可預覽；新增的特效與外觀會自動加入這裡。</div></div>';
   return h;
 }
+function fmtHM(sec) { const m = Math.round(sec / 60), h = Math.floor(m / 60), mm = m % 60; return h > 0 ? h + '小時' + mm + '分' : mm + '分'; }
+function weekChart(st) {
+  const days = []; for (let i = 6; i >= 0; i--) { const k = addDays(st.today, -i), d = st.dayMap[k]; days.push({ k, sec: d ? d.sec : 0, i }); }
+  const maxH = Math.max(...days.map(d => d.sec / 3600));
+  let top, step; if (maxH <= 1) { top = 1; step = 0.5; } else if (maxH <= 2) { top = 2; step = 1; } else { step = Math.ceil(maxH / 4); top = Math.ceil(maxH / step) * step; }
+  const Wd = 340, Ht = 210, L = 40, R = 16, T = 34, B = 36, pw = Wd - L - R, ph = Ht - T - B;
+  const X = i => L + pw * i / 6, Y = h => T + ph * (1 - h / top);
+  let g = '';
+  for (let v = 0; v <= top + 1e-9; v += step) { const y = Y(v); g += '<line x1="' + L + '" x2="' + (Wd - R) + '" y1="' + y + '" y2="' + y + '" stroke="#2a3270" stroke-dasharray="3 3"/><text x="' + (L - 6) + '" y="' + (y + 4) + '" text-anchor="end" fill="#9aa3d0" font-size="11">' + (Number.isInteger(v) ? v : v.toFixed(1)) + '</text>'; }
+  g += '<text x="' + (L - 6) + '" y="' + (T - 14) + '" text-anchor="end" fill="#9aa3d0" font-size="11">小時</text>';
+  const pts = days.map((d, idx) => [X(idx), Y(d.sec / 3600)]);
+  g += '<polyline fill="none" stroke="#ffd43b" stroke-width="2" points="' + pts.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ') + '"/>';
+  days.forEach((d, idx) => {
+    const [px, py] = pts[idx], tx = Math.max(L + 6, Math.min(Wd - R - 6, px)), dt = keyToDate(d.k);
+    g += '<rect x="' + (px - 3.5) + '" y="' + (py - 3.5) + '" width="7" height="7" fill="#ffd43b" stroke="#05071a" stroke-width="1.5"/>';
+    g += '<text x="' + tx + '" y="' + (py - 10) + '" text-anchor="middle" fill="#fff" font-size="11">' + fmtHM(d.sec) + '</text>';
+    g += '<text x="' + px + '" y="' + (Ht - 14) + '" text-anchor="middle" fill="' + (d.i === 0 ? '#ffd43b' : '#9aa3d0') + '" font-size="11">' + (d.i === 0 ? '今天' : (dt.getMonth() + 1) + '/' + dt.getDate()) + '</text>';
+  });
+  return '<svg viewBox="0 0 ' + Wd + ' ' + Ht + '" style="width:100%;display:block;font-family:inherit">' + g + '</svg>';
+}
 function petView() { return '<div class="empty" style="padding-top:90px"><div style="font-size:18px;color:var(--ink)">寵物</div><div style="margin-top:8px">敬請期待</div></div>'; }
 
 /* ---------- 技能 modal ---------- */
@@ -719,7 +738,7 @@ function skillModal(id) {
   const bonus = damageBonus(s.sec / 3600);
   let h = '<h2>' + titleHTML(s, true) + '</h2><div class="chips">' + RANKS.map((r, i) => '<span class="chip ' + (i === li.rank ? 'on' : '') + '" style="color:' + RANK_COLORS[i] + '">' + r + '</span>').join('') + '</div>' +
     '<div class="bar" style="--c:' + li.color + '"><i style="width:' + (li.progress * 100) + '%"></i></div><div class="dim" style="margin:6px 0">累積 ' + fmtHours(s.sec) + ' 小時　傷害加成 ' + (bonus * 100).toFixed(0) + '%<br>' + (li.isMax ? '已達最高境界' : '下一級還需 ' + (li.need - li.into).toFixed(1) + ' 小時') + '</div>' +
-    '<h3 style="color:var(--gold);font-weight:normal;margin:12px 0 4px">施術特效</h3><canvas id="mst" class="stage" style="margin-bottom:8px"></canvas><div class="chips" id="fxchips"></div><div class="dim">點選已解鎖的特效即可裝備（◆ 為目前裝備），修練畫面會用它攻擊木樁</div>' +
+    '<h3 style="color:var(--gold);font-weight:normal;margin:12px 0 4px">施術特效</h3><div class="stagewrap"><canvas id="mst" class="stage"></canvas></div><div class="chips" id="fxchips"></div><div class="dim">點選已解鎖的特效即可裝備（◆ 為目前裝備），修練畫面會用它攻擊木樁</div>' +
     '<button class="btn alt" data-a="closeModal">關閉</button><button class="btn alt sm" data-a="delSkill" data-v="' + s.id + '" style="color:#ff9b97">刪除技能</button>';
   modal(h);
   const cv = document.getElementById('mst'); skFx = fxTier(s); modalStage = new Stage(cv); modalStage.bonus = damageBonus(s.sec / 3600); modalStage.label = skillLabel(s); modalStage.lcolor = rankColor(s); modalStage.set(s.cat, skFx, true, lookIdx(), true); modalStage.start();
