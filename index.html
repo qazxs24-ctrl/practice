@@ -247,27 +247,85 @@ if (false) module.exports = { RANKS, RANK_COLORS, HOURS_PER_LV, LEVEL_STARTS, le
 /* ===== 像素美術 · 舞台 · 特效 · 音效 ===== */
 const PAL = { '.': null, n: '#1b2038', N: '#2e3a6e', M: '#3f4f93', s: '#f4cfa6', S: '#d9a77a', r: '#e8413c', R: '#a82a2a', g: '#b9c2da', G: '#7e88a8', w: '#ffffff', b: '#10131f', y: '#ffd43b' };
 const NINJA = [
-  '....nnnnnnnn....',
-  '...nNNNNNNNNn...',
-  '...nNNNNNNNNn...',
-  '...ngggyygggn...',
-  '...nnssssssnn...',
-  '...nsbwssbwsn...',
-  '...nnnnnnnnnn...',
-  '....nnrrrrnnrr..',
-  '...nnNMMMNNnrRR.',
-  '..nNNMNNNNMNnR..',
-  '..nNNNNNNNNNNn..',
-  '.snNNNNNNNNNNns.',
-  '..nNNggggggNNn..',
-  '..nNNNNNNNNNNn..',
-  '...nNNNNNNNNn...',
-  '...nNNn..nNNn...',
-  '...nNNn..nNNn...',
-  '..nnNNn..nNNnn..',
-  '..nnnnn..nnnnn..',
-].map(r => (r + '................').slice(0, 16));
-const NINJA_ARMS_UP = [[1, 6, 's'], [14, 6, 's'], [1, 7, 'n'], [14, 7, 'n'], [1, 8, 'N'], [14, 8, 'N'], [1, 9, 'N'], [14, 9, 'N']];
+  '...........nnnnnnnnnn...........',
+  '.........nnnnnnnnnnnnnn.........',
+  '.........nMMMNNNNNNNNNn.........',
+  '........nMMNNNNNNNNNNNNn........',
+  '........ngwwwwwyyggggggn........',
+  '........ngggggyyyygggggn........',
+  '........nGGGGGGGGGGGGGGn........',
+  '........nnSSSSSSSSSSSSnn........',
+  '........nnsnnnssssnnnsnn........',
+  '........nnswbbssssbbwsnn........',
+  '........nnssssssssssssnn........',
+  '........nnssssssssssssnn........',
+  '........nnMMMMMNNNNNNNnn........',
+  '.........nNNNNNNNNNNNNn.........',
+  '.........nnnnnnnnnnnnnn.........',
+  '.......nrrrrrrrrrrrrrrrr........',
+  '.......nrrrrrrrrrrrrrrrrr.......',
+  '.......nRRRRRRRRRRRRRRRrrrr.....',
+  '.....nMNnnMMNnNNNNnNNNnnNNnr....',
+  '.....nMNnnMNNNnNNnNNNNnnNNnrrr..',
+  '.....nMNnnMMNNNnnNNNNNnnNNnRrrr.',
+  '.....nMNnnMNNNNnnNNNNNnnNNn.RRrr',
+  '.....nMNnnMMNNNNNNNNNNnnNNn...Rr',
+  '.....nMNnnMNNNNNNNNNNNnnNNn....R',
+  '.....nMNnggggggyyggggggnNNn.....',
+  '.....nggnGGGGGGyyGGGGGGnggn.....',
+  '.....nggn.nNNggNNNNNNn.nggn.....',
+  '.....nNNn.nNNggNNNNNNn.nNNn.....',
+  '.....nNNn.nnnGGnnnnnnn.nNNn.....',
+  '.....nNNn.nMNNn..nNNNn.nNNn.....',
+  '.....nssn.nMNNn..nNNNn.nssn.....',
+  '.....nssn.nMNNn..nNNNn.nssn.....',
+  '......nn..ngggn..ngggn..nn......',
+  '..........nGGGn..nGGGn..........',
+  '..........nNNNn..nNNNn..........',
+  '.........nbbbbn..nbbbbn.........',
+  '.........nbbbbn..nbbbbn.........',
+  '.........nnnnnn..nnnnnn.........',
+];
+const NINJA_CAST = [
+  '...........nnnnnnnnnn...........',
+  '.........nnnnnnnnnnnnnn.........',
+  '.........nMMMNNNNNNNNNn.........',
+  '........nMMNNNNNNNNNNNNn........',
+  '........ngwwwwwyyggggggn........',
+  '....nnnnngggggyyyygggggnnnnn....',
+  '....nssnnGGGGGGGGGGGGGGnnssn....',
+  '....nssnnnSSSSSSSSSSSSnnnssn....',
+  '....nssnnnsnnnssssnnnsnnnssn....',
+  '....nssnnnswbbssssbbwsnnnssn....',
+  '....nMNnnnssssssssssssnnnNNn....',
+  '....nMNnnnssssssssssssnnnNNn....',
+  '....nMNnnnMMMMMNNNNNNNnnnNNn....',
+  '....nMNn.nNNNNNNNNNNNNn.nNNn....',
+  '....nggn.nnnnnnnnnnnnnn.nggn....',
+  '....nggnrrrrrrrrrrrrrrrrnggn....',
+  '....nMNnrrrrrrrrrrrrrrrrnNNn....',
+  '....nMNnRRRRRRRRRRRRRRRrnNNn....',
+  '....nMNNNnMMNnNNNNnNNNnNNNNn....',
+  '....nMNNNnMNNNnNNnNNNNnNNNNnrr..',
+  '....nMNNNnMMNNNnnNNNNNnNNNNnrrr.',
+  '.......NNnMNNNNnnNNNNNnNN...RRrr',
+  '.........nMMNNNNNNNNNNn.......Rr',
+  '.........nMNNNNNNNNNNNn........R',
+  '........nggggggyyggggggn........',
+  '........nGGGGGGyyGGGGGGn........',
+  '..........nNNggNNNNNNn..........',
+  '..........nNNggNNNNNNn..........',
+  '..........nnnGGnnnnnnn..........',
+  '..........nMNNn..nNNNn..........',
+  '..........nMNNn..nNNNn..........',
+  '..........nMNNn..nNNNn..........',
+  '..........ngggn..ngggn..........',
+  '..........nGGGn..nGGGn..........',
+  '..........nNNNn..nNNNn..........',
+  '.........nbbbbn..nbbbbn.........',
+  '.........nbbbbn..nbbbbn.........',
+  '.........nnnnnn..nnnnnn.........',
+];
 
 function spriteCanvas(rows, pal, extra) {
   const h = rows.length, w = rows[0].length;
@@ -278,14 +336,14 @@ function spriteCanvas(rows, pal, extra) {
   return c;
 }
 const LOOKPAL = [{}, { N: '#2f6a4a', M: '#46906a' }, { N: '#2f5fa8', M: '#4a82d0' }, { N: '#5a2f8a', M: '#7a4ab0', g: '#ffd43b' }];
-const LOOKEXTRA = [[], [], [[2, 9, 'g'], [13, 9, 'g']], [[2, 9, 'g'], [13, 9, 'g'], [2, 10, 'g'], [13, 10, 'g'], [14, 12, 'R'], [14, 13, 'R'], [15, 13, 'R'], [14, 14, 'r']]];
+const LOOKEXTRA = [[], [], [[10, 20, 'y'], [21, 20, 'y'], [10, 23, 'y'], [21, 23, 'y']], [[10, 20, 'y'], [21, 20, 'y'], [10, 23, 'y'], [21, 23, 'y'], [15, 2, 'y'], [16, 2, 'y'], [15, 3, 'y'], [16, 3, 'y']]];
 /* ===== 裝備素材清單（之後新增的眼睛／領巾／寵物只要加在這裡，就會出現在外觀頁與素材圖鑑） ===== */
 const EYES = [
-  { id: 'eye1', name: '銳利之眼', desc: '眉間壓低、目光銳利的眼神，像隨時準備出手。', extra: [[5, 4, 'n'], [6, 4, 'n'], [9, 4, 'n'], [10, 4, 'n'], [5, 5, 'b'], [6, 5, 'b'], [9, 5, 'b'], [10, 5, 'b']] },
-  { id: 'eye2', name: '笑眼', desc: '彎彎的笑眼，看起來心情很好。', extra: [[5, 5, 's'], [6, 5, 's'], [9, 5, 's'], [10, 5, 's'], [6, 4, 'b'], [5, 5, 'b'], [7, 5, 'b'], [10, 4, 'b'], [9, 5, 'b'], [11, 5, 'b']] },
-  { id: 'eye3', name: '大眼', desc: '圓圓亮亮的大眼睛，充滿好奇。', extra: [[5, 4, 'b'], [6, 4, 'b'], [5, 5, 'b'], [6, 5, 'w'], [9, 4, 'b'], [10, 4, 'b'], [9, 5, 'w'], [10, 5, 'b']] },
-  { id: 'eye4', name: '睏倦之眼', desc: '半睡半醒的眼神，修練到深夜的人很適合。', extra: [[5, 5, 'b'], [6, 5, 'b'], [9, 5, 'b'], [10, 5, 'b']] },
-  { id: 'eye5', name: '赤瞳', desc: '泛著紅光的眼睛，據說是修練有成的象徵。', extra: [[5, 4, 'n'], [10, 4, 'n'], [5, 5, '#ff3b3b'], [6, 5, '#8a0f18'], [9, 5, '#8a0f18'], [10, 5, '#ff3b3b']] },
+  { id: 'eye1', name: '銳利之眼', desc: '眉間壓低、目光銳利的眼神，像隨時準備出手。', extra: [[10, 8, 'n'], [14, 8, 'n'], [21, 8, 'n'], [11, 9, 'b'], [20, 9, 'b'], [11, 10, 'S'], [12, 10, 'S'], [13, 10, 'S'], [18, 10, 'S'], [19, 10, 'S'], [20, 10, 'S']] },
+  { id: 'eye2', name: '笑眼', desc: '彎彎的笑眼，看起來心情很好。', extra: [[11, 8, 's'], [12, 8, 'b'], [13, 8, 's'], [18, 8, 's'], [19, 8, 'b'], [20, 8, 's'], [11, 9, 'b'], [12, 9, 's'], [19, 9, 's'], [20, 9, 'b']] },
+  { id: 'eye3', name: '大眼', desc: '圓圓亮亮的大眼睛，充滿好奇。', extra: [[11, 8, 'b'], [12, 8, 'b'], [13, 8, 'b'], [18, 8, 'b'], [19, 8, 'b'], [20, 8, 'b'], [11, 9, 'b'], [12, 9, 'w'], [19, 9, 'w'], [20, 9, 'b'], [11, 10, 'b'], [12, 10, 'b'], [13, 10, 'b'], [18, 10, 'b'], [19, 10, 'b'], [20, 10, 'b']] },
+  { id: 'eye4', name: '睏倦之眼', desc: '半睡半醒的眼神，修練到深夜的人很適合。', extra: [[11, 8, 'S'], [12, 8, 'S'], [13, 8, 'S'], [18, 8, 'S'], [19, 8, 'S'], [20, 8, 'S'], [11, 9, 'b'], [20, 9, 'b']] },
+  { id: 'eye5', name: '赤瞳', desc: '泛著紅光的眼睛，據說是修練有成的象徵。', extra: [[11, 9, '#ff3b3b'], [12, 9, '#ff3b3b'], [13, 9, '#ff3b3b'], [18, 9, '#ff3b3b'], [19, 9, '#ff3b3b'], [20, 9, '#ff3b3b'], [11, 10, '#8a0f18'], [12, 10, '#ff3b3b'], [13, 10, '#8a0f18'], [18, 10, '#8a0f18'], [19, 10, '#ff3b3b'], [20, 10, '#8a0f18']] },
 ];
 const SCARVES = [
   { id: 'scarf1', name: '翠綠領巾', desc: '像竹林一樣清爽的綠色領巾。', pal: { r: '#3fbf6a', R: '#27804a' } },
@@ -298,14 +356,14 @@ const PETS = [
   {
     id: 'dog', name: '柴犬', desc: '忠心耿耿的柴犬，一路陪在你的身邊。施展忍術時會氣呼呼地瞪著你。',
     pal: { o: '#e8913a', O: '#b8651f', w: '#fff1d6', b: '#10131f', p: '#ff8fa3', r: '#e8413c' },
-    normal: ['.oo......oo.', '.oOo....oOo.', '.oooooooooo.', '.oooooooooo.', '.oobooooboo.', '.owwwwwwwwo.', '.owwwbbwwwo.', '..owwppwwo..', '..oooooooo..', '.oowwwwwwoo.', '.oowwwwwwoo.', '.owo.OO.owo.'],
-    angry: ['.oo......oo.', '.oOo....oOo.', '.oooooooooo.', '.oobboobboo.', '.oobooooboo.', '.owwwwwwwwo.', '.owwwbbwwwo.', '..owwrrwwo..', '..oooooooo..', '.oowwwwwwoo.', '.oowwwwwwoo.', '.owo.OO.owo.'],
+    normal: ['....ooooo......ooooo....', '....ooOoo......ooOoo....', '.....oOoOOOOOOOOoOo.....', '.....oOOooooooooOOo.....', '.....OowwoooooowwoO.....', '....OooooooooooooooO....', '...OooobboooooobboooO...', '..OoooobboooooobbooooO..', '..OoooooowwbbwwooooooO..', '..OooooowwwbbwwwoooooO..', '..OoooowwwwbwwwwwooooO..', '..OoooowwwbwwbwwwooooO..', '...OooowwwwbbwwwwoooO...', '...OoooowwwwwwwwooooO...', '....Ooooowwwwwwoooowwo..', '......OoowwwwwwooO.oooo.', '......OoowwwwwwooO...oo.', '......OoowwwwwwooO..oo..', '......OoowwwwwwooO.oo...', '......OoowwwwwwooOoo....', '......OwwwwwwwwwwOo.....', '......OwwwwwwwwwwOo.....', '......OOOOOOOOOOOO......', '........................'],
+    angry: ['....ooooo......ooooo....', '....ooOoo......ooOoo....', '.....oOoOOOOOOOOoOo.....', '.....oOOooooooooOOo.....', '.....OooooooooooooO.....', '....OobboooooooobboO....', '...OoooobboooobbooooO...', '..OoooobboooooobbooooO..', '..OoooobbwwbbwwbbooooO..', '..OooooowwwbbwwwoooooO..', '..OoooowwwwbwwwwwooooO..', '..OoooowwwbwwbwwwooooO..', '...OooowwwwrrwwwwoooO...', '...OoooowwrrrrwwooooO...', '....Ooooowwwwwwoooowwo..', '......OoowwwwwwooO.oooo.', '......OoowwwwwwooO...oo.', '......OoowwwwwwooO..oo..', '......OoowwwwwwooO.oo...', '......OoowwwwwwooOoo....', '......OwwwwwwwwwwOo.....', '......OwwwwwwwwwwOo.....', '......OOOOOOOOOOOO......', '........................'],
   },
   {
     id: 'cat', name: '橘貓', desc: '懶洋洋的橘色虎斑貓，平常很乖，被打擾修練會露出兇相。',
     pal: { o: '#f0a04a', O: '#c26a1c', w: '#fff1d6', b: '#10131f', p: '#ff8fa3', r: '#e8413c' },
-    normal: ['.o........o.', '.oo......oo.', '.oOo....oOo.', '.oooooooooo.', '.oOooOOooOo.', '.oobooooboo.', '.owwwppwwwo.', '..owwwwwwo..', '..oooooooo..', '.oOowwwwoOo.', '.ooowwwwooo.', '.owo.OO.owo.'],
-    angry: ['.o........o.', '.oo......oo.', '.oOo....oOo.', '.oooooooooo.', '.oobboobboo.', '.oobooooboo.', '.owwwppwwwo.', '..owwrrwwo..', '..oooooooo..', '.oOowwwwoOo.', '.ooowwwwooo.', '.owo.OO.owo.'],
+    normal: ['........................', '...Oooooo......oooooO...', '...Oopooo......ooopoO...', '....OopoOOOOOOOOopoO....', '....OOoooooOOoooooOO....', '....OooooOoOOoOooooO....', '...OooooOooooooOooooO...', '..OooooooooooooooooooO..', '..OoooobboooooobbooooO..', '..OoooobboooooobbooooO..', '..OoooooowwppwwooooooO..', '..OoowwowwwwwwwwowwooO..', '..OooowowwbbwbwwowoooO..', '...OowooowwbwwwooowoOoo.', '...OoooooowwwwooooooOoo.', '....OooooooooooooooO.OO.', '.......OoowwwwooO...oo..', '.......OOOwwwwOOO...OO..', '.......OoowwwwooO...oo..', '.......OOOwwwwOOO..OO...', '.......OwwwwwwwwO..oo...', '.......OwwwwwwwwOooo....', '.......OOOOOOOOOO.......', '........................'],
+    angry: ['........................', '...Oooooo......oooooO...', '...Oopooo......ooopoO...', '....OopoOOOOOOOOopoO....', '....OOoooooOOoooooOO....', '....OooooOoOOoOooooO....', '...OooooOooooooOooooO...', '..OooobboooooooobboooO..', '..OooooobboooobboooooO..', '..OoooobboooooobbooooO..', '..OoooobbwwppwwbbooooO..', '..OoowwowwwwwwwwowwooO..', '..OooowowwbbwbwwowoooO..', '...OowooowwbwwwooowoOoo.', '...OoooooowrrwooooooOoo.', '....OooooooooooooooO.OO.', '.......OoowwwwooO...oo..', '.......OOOwwwwOOO...OO..', '.......OoowwwwooO...oo..', '.......OOOwwwwOOO..OO...', '.......OwwwwwwwwO..oo...', '.......OwwwwwwwwOooo....', '.......OOOOOOOOOO.......', '........................'],
   },
 ];
 const SPRC = {};
@@ -314,11 +372,7 @@ function sprites(rank, eyesId, scarfId) {
   if (SPRC[key]) return SPRC[key];
   const sc = SCARVES.find(s => s.id === scarfId), ey = EYES.find(e => e.id === eyesId);
   const pal = Object.assign({}, PAL, LOOKPAL[rank] || {}, sc ? sc.pal : {}), ex = (LOOKEXTRA[rank] || []).concat(ey ? ey.extra : []);
-  const base = spriteCanvas(NINJA, pal, ex), cast = spriteCanvas(NINJA, pal, ex), x = cast.getContext('2d');
-  x.clearRect(1, 11, 1, 1); x.clearRect(14, 11, 1, 1);
-  x.fillStyle = pal.s; x.fillRect(1, 5, 2, 2); x.fillRect(13, 5, 2, 2);
-  x.fillStyle = pal.n; x.fillRect(2, 7, 1, 4); x.fillRect(13, 7, 1, 4);
-  x.fillStyle = pal.N; x.fillRect(3, 8, 1, 3); x.fillRect(12, 8, 1, 3);
+  const base = spriteCanvas(NINJA, pal, ex), cast = spriteCanvas(NINJA_CAST, pal, ex);
   return (SPRC[key] = { base, cast });
 }
 const PETC = {};
@@ -333,8 +387,8 @@ const W = 160, H = 100;
 let BG = null;
 function bgCanvas() {
   if (BG) return BG;
-  const c = document.createElement('canvas'); c.width = W; c.height = H;
-  const x = c.getContext('2d');
+  const c = document.createElement('canvas'); c.width = W * 2; c.height = H * 2;
+  const x = c.getContext('2d'); x.scale(2, 2);
   const sky = ['#0b0e2b', '#10143a', '#161a46', '#1d1d52', '#2a2160', '#3a2766', '#512d6b', '#6e3470', '#8a3d6e'];
   for (let i = 0; i < sky.length; i++) { x.fillStyle = sky[i]; x.fillRect(0, i * 8, W, 9); }
   // 月亮
@@ -386,7 +440,7 @@ function bgCanvas() {
 
 class Stage {
   constructor(canvas, opt) {
-    this.c = canvas; canvas.width = W; canvas.height = H;
+    this.c = canvas; canvas.width = W * 2; canvas.height = H * 2;
     this.x = canvas.getContext('2d'); this.x.imageSmoothingEnabled = false;
     this.cat = '忍術'; this.tier = 0; this.casting = false; this.t = 0; this.parts = []; this.look = 0; this.train = false; this.dmgs = []; this.dshake = 0; this._pp = 0; this.bonus = 1; this.once = false; this._t0 = 0; this.label = ''; this.lcolor = '#fff'; this._lp = null; this.eyes = null; this.scarf = null; this.pet = null;
     this.rand = rng(Math.floor(Math.random() * 1e9));
@@ -400,11 +454,12 @@ class Stage {
   start() { if (this.running) return; this.running = true; this.last = performance.now(); const loop = (n) => { if (!this.running) return; this.raf = requestAnimationFrame(loop); if (n - this.last < 66) return; const dt = Math.min(0.2, (n - this.last) / 1000); this.last = n; this.step(dt); }; this.raf = requestAnimationFrame(loop); }
   stop() { this.running = false; cancelAnimationFrame(this.raf); }
   P(x, y, vx, vy, life, col, s, g) { if (this.parts.length > 420) return; this.parts.push({ x, y, vx, vy, life, max: life, c: col, s: s || 1, g: g || 0 }); }
-  ninja(x, y, a) { const sp = sprites(this.look, this.eyes, this.scarf); this.x.globalAlpha = a; this.x.drawImage(this.casting ? sp.cast : sp.base, Math.round(x), Math.round(y), 32, 38); this.x.globalAlpha = 1; }
+  ninja(x, y, a) { const sp = sprites(this.look, this.eyes, this.scarf); this.x.globalAlpha = a; this.x.drawImage(this.casting ? sp.cast : sp.base, Math.round(x * 2) / 2, Math.round(y * 2) / 2, 32, 38); this.x.globalAlpha = 1; }
   step(dt) {
     const x = this.x, t = (this.t += dt), R = this.rand, tier = this.tier, cat = this.cat;
+    x.setTransform(2, 0, 0, 2, 0, 0); x.imageSmoothingEnabled = false;
     x.globalAlpha = 1;
-    x.drawImage(bgCanvas(), 0, 0);
+    x.drawImage(bgCanvas(), 0, 0, W, H);
     // 星
     for (const s of this.stars) { if (Math.sin(t * 2 + s[2]) > 0.2) { x.fillStyle = '#fff'; x.fillRect(Math.round(s[0]), Math.round(s[1]), 1, 1); } }
     // 螢火蟲
@@ -506,7 +561,7 @@ class Stage {
       const n = tier >= 2 ? [0, 0, 2, 2, 4, 6][tier] : 0;
       for (let i = 0; i < n; i++) { const side = i % 2 ? 1 : -1, k = (i >> 1) + 1, off = side * (16 + k * 16) + Math.sin(t * 2 + i) * 4; this.ninja(cx - 16 + off, ny + Math.sin(t * 3 + i) * 1.5, 0.28); }
       if (tier >= 3) { x.strokeStyle = 'rgba(210,150,255,0.7)'; x.lineWidth = 1; x.beginPath(); x.ellipse(cx, feet, 30, 7, 0, 0, 7); x.stroke(); x.beginPath(); x.ellipse(cx, feet, 20, 4, 0, 0, 7); x.stroke(); x.fillStyle = '#e6c2ff'; for (let i = 0; i < 8; i++) { const a = t * 1.5 + i * 0.785; x.fillRect(Math.round(cx + Math.cos(a) * 30), Math.round(feet + Math.sin(a) * 7), 2, 2); } }
-      if (tier >= 5) { for (let i = 0; i < 4; i++) { const y = 10 + ((t * 40 + i * 23) % 70); x.globalAlpha = 0.35; x.drawImage(this.c, 0, Math.round(y), W, 3, Math.round((R() - 0.5) * 8), Math.round(y), W, 3); } x.globalAlpha = 1; }
+      if (tier >= 5) { for (let i = 0; i < 4; i++) { const y = 10 + ((t * 40 + i * 23) % 70); x.globalAlpha = 0.35; x.drawImage(this.c, 0, Math.round(y) * 2, W * 2, 6, Math.round((R() - 0.5) * 8), Math.round(y), W, 3); } x.globalAlpha = 1; }
     } else {
       const C = ['#ffffff', '#c9f6ff', '#6fe3ff', '#3bb6ff'];
       emit(1 + tier, () => this.P(W + 2, 28 + R() * 48, -90 - R() * 60, 0, 0.7, C[(R() * 2) | 0], 1, 0));
@@ -649,9 +704,9 @@ function itemIcon(it) {
   if (ICONC[it.id]) return ICONC[it.id];
   const c = document.createElement('canvas'); c.width = 64; c.height = 64; const x = c.getContext('2d'); x.imageSmoothingEnabled = false;
   let src, sx = 0, sy = 0, sw = 0, sh = 0, k = 1;
-  if (it.slot === 'eyes') { src = sprites(0, it.id, null).base; sx = 3; sy = 2; sw = 10; sh = 6; k = 6; }
-  else if (it.slot === 'scarf') { src = sprites(0, null, it.id).base; sx = 4; sy = 5; sw = 12; sh = 6; k = 5; }
-  else { src = petSprite(it.id, false); sw = 12; sh = 12; k = 5; }
+  if (it.slot === 'eyes') { src = sprites(0, it.id, null).base; sx = 8; sy = 3; sw = 16; sh = 10; k = 4; }
+  else if (it.slot === 'scarf') { src = sprites(0, null, it.id).base; sx = 7; sy = 14; sw = 25; sh = 7; k = 2.5; }
+  else { src = petSprite(it.id, false); sw = 24; sh = 24; k = 2.6; }
   x.drawImage(src, sx, sy, sw, sh, Math.round((64 - sw * k) / 2), Math.round((64 - sh * k) / 2), sw * k, sh * k);
   return (ICONC[it.id] = c.toDataURL());
 }
