@@ -109,7 +109,7 @@ textarea{min-height:90px;resize:vertical}
 .f7c.go{box-shadow:inset 0 0 0 3px var(--gold);background:var(--p2);animation:pulse 1.2s steps(2) infinite}
 .f7c .f7s{color:var(--gold);min-height:12px}
 @keyframes pulse{50%{background:#3a2a10}}
-.galwrap{display:flex;flex-direction:column;height:calc(100dvh - 62px - env(safe-area-inset-top) - 62px - env(safe-area-inset-bottom))}
+.galwrap{position:fixed;left:50%;transform:translateX(-50%);width:100%;max-width:480px;box-sizing:border-box;padding:0 12px;display:flex;flex-direction:column;overflow:hidden;background:var(--bg);z-index:2}
 .galfix{flex:none;background:var(--bg);padding-bottom:6px}
 .galfix .stagewrap{margin:6px 0}
 .galfix .stage{width:auto;max-width:100%;max-height:30vh;margin:0 auto}
@@ -749,6 +749,8 @@ function render() {
   if (tab === 'home') v = homeView(); else if (tab === 'skills') v = skillsView(); else if (tab === 'train') v = trainView(); else if (tab === 'log') v = logView(); else if (tab === 'pet') v = petView(); else if (tab === 'look') v = lookView(); else if (tab === 'gallery') v = galleryView();
   const gs0 = document.querySelector('.galscroll'), gsTop = gs0 ? gs0.scrollTop : 0;
   $app.innerHTML = (locked ? '' : topbar()) + '<div class="view' + (locked ? ' sa' : '') + '">' + (tab !== 'train' ? runBanner() : '') + v + '</div>' + (locked ? '' : nav());
+  const gw = document.querySelector('.galwrap');
+  if (gw) { const tb = document.querySelector('.top'), rb = document.querySelector('.runbar'), nv = document.querySelector('.nav'); let top = tb ? tb.getBoundingClientRect().bottom : 0; if (rb) top = Math.max(top, rb.getBoundingClientRect().bottom); gw.style.top = Math.round(top) + 'px'; gw.style.bottom = (nv ? nv.offsetHeight : 0) + 'px'; }
   const gs1 = document.querySelector('.galscroll'); if (gs1 && gs0) gs1.scrollTop = gsTop;
   const cv = document.getElementById('st');
   if (cv) {
