@@ -389,7 +389,7 @@ function petSprite(id, angry) {
 
 function rng(seed) { let s = seed >>> 0 || 1; return () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296; }
 
-const W = 160, H = 100, CS = 1.5, PS = 1.25;
+const W = 160, H = 100;
 let BG = null;
 function bgCanvas() {
   if (BG) return BG;
@@ -460,7 +460,7 @@ class Stage {
   start() { if (this.running) return; this.running = true; this.last = performance.now(); const loop = (n) => { if (!this.running) return; this.raf = requestAnimationFrame(loop); if (n - this.last < 66) return; const dt = Math.min(0.2, (n - this.last) / 1000); this.last = n; this.step(dt); }; this.raf = requestAnimationFrame(loop); }
   stop() { this.running = false; cancelAnimationFrame(this.raf); }
   P(x, y, vx, vy, life, col, s, g) { if (this.parts.length > 420) return; this.parts.push({ x, y, vx, vy, life, max: life, c: col, s: s || 1, g: g || 0 }); }
-  ninja(x, y, a) { const sp = sprites(this.look, this.eyes, this.scarf); this.x.globalAlpha = a; this.x.drawImage(this.casting ? sp.cast : sp.base, Math.round(x * 2) / 2, Math.round(y * 2) / 2, 32 * CS, 38 * CS); this.x.globalAlpha = 1; }
+  ninja(x, y, a) { const sp = sprites(this.look, this.eyes, this.scarf); this.x.globalAlpha = a; this.x.drawImage(this.casting ? sp.cast : sp.base, Math.round(x * 2) / 2, Math.round(y * 2) / 2, 32, 38); this.x.globalAlpha = 1; }
   step(dt) {
     const x = this.x, t = (this.t += dt), R = this.rand, tier = this.tier, cat = this.cat;
     x.setTransform(2, 0, 0, 2, 0, 0); x.imageSmoothingEnabled = false;
@@ -476,21 +476,21 @@ class Stage {
 
     const feet = 78; let cx = 80, off = 0, proj = null;
     if (this.train) {
-      this._lp = null; cx = 60; const e = t - this._t0, done = this.once && e >= 3.6, p = this.once ? Math.min(e, 3.59) : e % 3.6;
+      this._lp = null; cx = 44; const e = t - this._t0, done = this.once && e >= 3.6, p = this.once ? Math.min(e, 3.59) : e % 3.6;
       if (done) { this.casting = false; this.dummy(dt); }
       else {
         if (this._pp < 1.9 && p >= 1.9) this.hit();
         this._pp = p; this.casting = p < 1.9; this._lp = p;
-        if (this.cat === '體術') { if (p >= 1.4 && p < 1.9) off = (p - 1.4) / 0.5 * 26; else if (p >= 1.9 && p < 2.7) off = 26 * (1 - (p - 1.9) / 0.8); }
+        if (this.cat === '體術') { if (p >= 1.4 && p < 1.9) off = (p - 1.4) / 0.5 * 52; else if (p >= 1.9 && p < 2.7) off = 52 * (1 - (p - 1.9) / 0.8); }
         else if (p >= 1.4 && p < 1.9) proj = (p - 1.4) / 0.5;
         this.dummy(dt);
       }
     }
     const cx0 = cx; cx += off;
     const bob = this.casting ? Math.round(Math.sin(t * 9) * 1) : Math.round(Math.sin(t * 2.5));
-    const nx = cx - 16 * CS, ny = feet - 38 * CS + bob;
+    const nx = cx - 16, ny = feet - 38 + bob;
     if (this.casting) this.fx(dt, t, cx, ny, feet);
-    x.fillStyle = '#0a0d22aa'; x.fillRect(cx - 18, feet - 1, 36, 2);
+    x.fillStyle = '#0a0d22aa'; x.fillRect(cx - 12, feet - 1, 24, 2);
     this.drawPet(cx0, t);
     this.ninja(nx, ny, 1);
     if (this.casting) this.front(dt, t, cx, ny, feet);
@@ -508,11 +508,11 @@ class Stage {
   }
   drawPet(cx0, t) {
     if (!this.pet || !PETS.find(p => p.id === this.pet)) return;
-    const x = this.x, ang = this.casting, spr = petSprite(this.pet, ang), px0 = cx0 - 24 - 30 - 2;
+    const x = this.x, ang = this.casting, spr = petSprite(this.pet, ang), px0 = cx0 - 42;
     const jx = ang ? Math.round(Math.sin(t * 40)) : 0, by = ang ? 0 : Math.round(Math.sin(t * 3));
-    x.fillStyle = '#0a0d22aa'; x.fillRect(px0 + 2, 77, 26, 2);
-    x.drawImage(spr, px0 + jx, 48 + by, 24 * PS, 24 * PS);
-    if (ang && Math.sin(t * 14) > -0.3) { x.fillStyle = '#ff3b3b'; x.fillRect(px0 + 25, 45, 6, 2); x.fillRect(px0 + 27, 43, 2, 6); }
+    x.fillStyle = '#0a0d22aa'; x.fillRect(px0 + 1, 77, 22, 2);
+    x.drawImage(spr, px0 + jx, 54 + by, 24, 24);
+    if (ang && Math.sin(t * 14) > -0.3) { x.fillStyle = '#ff3b3b'; x.fillRect(px0 + 20, 51, 6, 2); x.fillRect(px0 + 22, 49, 2, 6); }
   }
   updateLabel(cx) {
     if (!this.label || !this.casting) { if (this.lab) this.lab.style.opacity = 0; return; }
@@ -521,7 +521,7 @@ class Stage {
     this.lab.style.color = this.lcolor;
     let a = 1; const p = this._lp; if (p !== null) a = Math.max(0, Math.min(1, (p - 0.1) / 0.25, (1.9 - p) / 0.3));
     const cw = this.c.clientWidth || 320, hw = (this.lab.offsetWidth || 0) / 2; let px = cx / 160 * cw; px = Math.max(hw + 4, Math.min(cw - hw - 4, px));
-    this.lab.style.left = px + 'px'; this.lab.style.top = '19%'; this.lab.style.opacity = a;
+    this.lab.style.left = px + 'px'; this.lab.style.top = '34%'; this.lab.style.opacity = a;
     this.lab.style.transform = 'translate(-50%, calc(-100% + ' + ((1 - a) * -6).toFixed(1) + 'px))';
   }
   dummy(dt) {
@@ -541,7 +541,7 @@ class Stage {
     this.dmgs.push({ x: 104, y: 42, v: Math.round((70 + R() * 50) * (this.bonus || 1) * (1 + tier * 0.35)), life: 1.1 });
   }
   projDraw(u, cx, ny) {
-    const x = this.x, tier = this.tier, R = this.rand, px = cx + 14 * CS + (118 - 10 - cx - 14 * CS) * u, py = ny + 18 * CS - Math.sin(u * 3.14) * 5;
+    const x = this.x, tier = this.tier, R = this.rand, px = cx + 14 + (118 - 10 - cx - 14) * u, py = ny + 18 - Math.sin(u * 3.14) * 5;
     if (this.cat === '忍術') {
       const n = tier >= 3 ? 3 : 1, r = 2 + Math.min(4, tier);
       for (let i = 0; i < n; i++) { const bx = Math.round(px - i * 10), by = Math.round(py + (i - (n - 1) / 2) * 4); x.fillStyle = '#d7331c'; x.fillRect(bx - r, by - r, r * 2, r * 2); x.fillStyle = '#ff9a2a'; x.fillRect(bx - r + 1, by - r + 1, r * 2 - 2, r * 2 - 2); x.fillStyle = '#fff1b3'; x.fillRect(bx - 1, by - 1, 2, 2); this.P(bx - r, by, -20, (R() - 0.5) * 12, 0.4, '#ffb23d', 1, 0); }
@@ -552,7 +552,7 @@ class Stage {
   }
   // 背景層特效 (角色後方) + 產生粒子
   fx(dt, t, cx, ny, feet) {
-    const x = this.x, R = this.rand, tier = this.tier, cat = this.cat, cy = ny + 20 * CS;
+    const x = this.x, R = this.rand, tier = this.tier, cat = this.cat, cy = ny + 20;
     const emit = (rate, fn) => { let n = rate * dt * 15; while (n > 0) { if (n >= 1 || R() < n) fn(); n -= 1; } };
     if (cat === '忍術') {
       const F = ['#fff1b3', '#ffc23d', '#ff7a2a', '#d7331c'];
@@ -565,13 +565,13 @@ class Stage {
       const C = ['#f5e1ff', '#d9a6ff', '#a56bff', '#ff8fd8'];
       emit(0.8 + tier * 1.1, () => { const a = t * 3 + R() * 6.28, r = 12 + R() * (14 + tier * 3); this.P(cx + Math.cos(a) * r, cy + Math.sin(a) * r * 0.8, Math.cos(a + 1.6) * 10, Math.sin(a + 1.6) * 10 - 6, 0.9, C[(R() * 4) | 0], 1 + (R() < 0.2 ? 1 : 0), 0); });
       const n = tier >= 2 ? [0, 0, 2, 2, 4, 6][tier] : 0;
-      for (let i = 0; i < n; i++) { const side = i % 2 ? 1 : -1, k = (i >> 1) + 1, off = side * (16 + k * 16) + Math.sin(t * 2 + i) * 4; this.ninja(cx - 16 * CS + off, ny + Math.sin(t * 3 + i) * 1.5, 0.28); }
+      for (let i = 0; i < n; i++) { const side = i % 2 ? 1 : -1, k = (i >> 1) + 1, off = side * (16 + k * 16) + Math.sin(t * 2 + i) * 4; this.ninja(cx - 16 + off, ny + Math.sin(t * 3 + i) * 1.5, 0.28); }
       if (tier >= 3) { x.strokeStyle = 'rgba(210,150,255,0.7)'; x.lineWidth = 1; x.beginPath(); x.ellipse(cx, feet, 30, 7, 0, 0, 7); x.stroke(); x.beginPath(); x.ellipse(cx, feet, 20, 4, 0, 0, 7); x.stroke(); x.fillStyle = '#e6c2ff'; for (let i = 0; i < 8; i++) { const a = t * 1.5 + i * 0.785; x.fillRect(Math.round(cx + Math.cos(a) * 30), Math.round(feet + Math.sin(a) * 7), 2, 2); } }
       if (tier >= 5) { for (let i = 0; i < 4; i++) { const y = 10 + ((t * 40 + i * 23) % 70); x.globalAlpha = 0.35; x.drawImage(this.c, 0, Math.round(y) * 2, W * 2, 6, Math.round((R() - 0.5) * 8), Math.round(y), W, 3); } x.globalAlpha = 1; }
     } else {
       const C = ['#ffffff', '#c9f6ff', '#6fe3ff', '#3bb6ff'];
       emit(1 + tier, () => this.P(W + 2, 28 + R() * 48, -90 - R() * 60, 0, 0.7, C[(R() * 2) | 0], 1, 0));
-      if (tier >= 1) { const n = [0, 2, 2, 4, 4, 6][tier]; for (let i = 1; i <= n; i++) this.ninja(cx - 16 * CS - i * 7 * (1 + Math.sin(t * 5) * 0.2), ny, 0.5 / (1 + i * 0.6)); }
+      if (tier >= 1) { const n = [0, 2, 2, 4, 4, 6][tier]; for (let i = 1; i <= n; i++) this.ninja(cx - 16 - i * 7 * (1 + Math.sin(t * 5) * 0.2), ny, 0.5 / (1 + i * 0.6)); }
       if (tier >= 2) { const ph = (t * 1.3) % 1, r = ph * 46; x.strokeStyle = 'rgba(180,240,255,' + (1 - ph) + ')'; x.lineWidth = 1; x.beginPath(); x.ellipse(cx, feet, r, r * 0.22, 0, 0, 7); x.stroke(); }
       if (tier >= 4) { x.fillStyle = 'rgba(100,220,255,' + (0.14 + 0.06 * Math.sin(t * 9)) + ')'; x.fillRect(cx - 14, 14, 28, feet - 14); emit(3, () => this.P(cx + (R() - 0.5) * 26, feet, 0, -45 - R() * 25, 0.7, C[(R() * 4) | 0], 1, 0)); }
       if (tier >= 5 && R() < 0.25) { x.strokeStyle = '#fffbd0'; x.lineWidth = 1; x.beginPath(); let lx = cx + (R() - 0.5) * 90, ly = 0; x.moveTo(lx, ly); while (ly < feet) { ly += 8; lx += (R() - 0.5) * 14; x.lineTo(lx, ly); } x.stroke(); this.shake = 0.1; }
@@ -579,7 +579,7 @@ class Stage {
   }
   // 前景 (角色前方)
   front(dt, t, cx, ny, feet) {
-    const x = this.x, tier = this.tier, cy = ny + 20 * CS;
+    const x = this.x, tier = this.tier, cy = ny + 20;
     if (this.cat === '忍術' && tier >= 1) {
       const n = [0, 1, 1, 3, 3, 5][tier];
       for (let i = 0; i < n; i++) {
