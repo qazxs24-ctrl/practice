@@ -36,7 +36,7 @@ canvas{image-rendering:pixelated;image-rendering:crisp-edges}
 .skill{display:block;width:100%;text-align:left;margin:10px 0;padding:12px;background:var(--p1);box-shadow:0 0 0 3px var(--shadow),inset 0 0 0 2px var(--ln)}
 .skill.sel{box-shadow:0 0 0 3px var(--gold),inset 0 0 0 2px var(--gold);background:var(--p2)}
 .skill .nm{font-size:16px;margin-bottom:6px}
-.nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;display:grid;grid-template-columns:repeat(5,1fr);background:#080b22;box-shadow:0 -3px 0 var(--ln);z-index:10;padding-bottom:env(safe-area-inset-bottom)}
+.nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;display:grid;grid-template-columns:repeat(6,1fr);background:#080b22;box-shadow:0 -3px 0 var(--ln);z-index:10;padding-bottom:env(safe-area-inset-bottom)}
 .nav button{padding:8px 0 7px;font-size:12px;color:var(--dim);display:flex;flex-direction:column;align-items:center;gap:3px}
 .nav button canvas{width:26px;height:26px}
 .nav button.on{color:var(--gold);background:var(--p1)}
@@ -88,6 +88,27 @@ textarea{min-height:90px;resize:vertical}
 .modal{padding-top:calc(18px + env(safe-area-inset-top))}
 .bt{padding-top:calc(20px + env(safe-area-inset-top))}
 .skl{position:absolute;z-index:2;pointer-events:none;white-space:nowrap;font-size:clamp(14px,4.4vw,19px);letter-spacing:1px;padding:2px 9px;background:rgba(5,7,26,.74);box-shadow:0 0 0 2px #000;text-shadow:2px 0 #000,-2px 0 #000,0 2px #000,0 -2px #000;opacity:0;left:50%;top:34%}
+.nav button{font-size:11px}
+.eqgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.eqcell{position:relative;padding:6px 2px 4px;background:#0a0d26;box-shadow:inset 0 0 0 2px var(--ln);text-align:center;font-size:11px}
+.eqcell.on{box-shadow:inset 0 0 0 3px var(--gold);background:var(--p2)}
+.eqcell.lock .eqi{opacity:.35;filter:grayscale(1)}
+.eqi{width:100%;aspect-ratio:1;image-rendering:pixelated;display:block}
+.eqn{margin-top:2px;line-height:1.2}
+.eqb{position:absolute;left:0;right:0;top:0;background:var(--gold);color:#2a1c00;font-size:10px;padding:1px 0}
+.eqlk{position:absolute;right:3px;top:3px;font-size:12px}
+.eqm{display:flex;gap:12px;margin-bottom:12px}
+.eqleft{width:42%;flex:none}
+.eqimg{width:100%;aspect-ratio:1;image-rendering:pixelated;background:#0a0d26;box-shadow:inset 0 0 0 2px var(--ln);display:block}
+.eqdesc{flex:1;font-size:14px}
+.f7{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.f7c{padding:4px 0;background:#0a0d26;box-shadow:inset 0 0 0 2px var(--ln);text-align:center;font-size:10px;min-height:76px;display:flex;flex-direction:column;align-items:center;justify-content:space-between}
+.f7c img{width:26px;height:26px;image-rendering:pixelated}
+.f7c .f7r{display:flex;align-items:center;gap:2px;font-size:12px;min-height:26px}
+.f7c.done{opacity:.5}
+.f7c.go{box-shadow:inset 0 0 0 3px var(--gold);background:var(--p2);animation:pulse 1.2s steps(2) infinite}
+.f7c .f7s{color:var(--gold);min-height:12px}
+@keyframes pulse{50%{background:#3a2a10}}
 </style></head><body><div id="app"></div><div id="md"></div>
 <script>/* ===== 練習 · 純邏輯 (可在 node 測試) ===== */
 const RANKS = ['D', 'C', 'B', 'A', 'S', 'SS'];
@@ -253,21 +274,57 @@ function spriteCanvas(rows, pal, extra) {
   const c = document.createElement('canvas'); c.width = w; c.height = h;
   const x = c.getContext('2d');
   rows.forEach((row, j) => { for (let i = 0; i < w; i++) { const col = pal[row[i]]; if (col) { x.fillStyle = col; x.fillRect(i, j, 1, 1); } } });
-  if (extra) for (const [i, j, k] of extra) { x.clearRect(i, j, 1, 1); x.fillStyle = pal[k]; x.fillRect(i, j, 1, 1); }
+  if (extra) for (const [i, j, k] of extra) { x.clearRect(i, j, 1, 1); x.fillStyle = pal[k] || k; x.fillRect(i, j, 1, 1); }
   return c;
 }
-const LOOKPAL = [{}, { r: '#3fbf6a', R: '#27804a' }, { N: '#2f5fa8', M: '#4a82d0', r: '#5bb4ff', R: '#2a6fc0' }, { N: '#5a2f8a', M: '#7a4ab0', r: '#ffd43b', R: '#c9971a', g: '#ffd43b' }];
+const LOOKPAL = [{}, { N: '#2f6a4a', M: '#46906a' }, { N: '#2f5fa8', M: '#4a82d0' }, { N: '#5a2f8a', M: '#7a4ab0', g: '#ffd43b' }];
 const LOOKEXTRA = [[], [], [[2, 9, 'g'], [13, 9, 'g']], [[2, 9, 'g'], [13, 9, 'g'], [2, 10, 'g'], [13, 10, 'g'], [14, 12, 'R'], [14, 13, 'R'], [15, 13, 'R'], [14, 14, 'r']]];
+/* ===== 裝備素材清單（之後新增的眼睛／領巾／寵物只要加在這裡，就會出現在外觀頁與素材圖鑑） ===== */
+const EYES = [
+  { id: 'eye1', name: '銳利之眼', desc: '眉間壓低、目光銳利的眼神，像隨時準備出手。', extra: [[5, 4, 'n'], [6, 4, 'n'], [9, 4, 'n'], [10, 4, 'n'], [5, 5, 'b'], [6, 5, 'b'], [9, 5, 'b'], [10, 5, 'b']] },
+  { id: 'eye2', name: '笑眼', desc: '彎彎的笑眼，看起來心情很好。', extra: [[5, 5, 's'], [6, 5, 's'], [9, 5, 's'], [10, 5, 's'], [6, 4, 'b'], [5, 5, 'b'], [7, 5, 'b'], [10, 4, 'b'], [9, 5, 'b'], [11, 5, 'b']] },
+  { id: 'eye3', name: '大眼', desc: '圓圓亮亮的大眼睛，充滿好奇。', extra: [[5, 4, 'b'], [6, 4, 'b'], [5, 5, 'b'], [6, 5, 'w'], [9, 4, 'b'], [10, 4, 'b'], [9, 5, 'w'], [10, 5, 'b']] },
+  { id: 'eye4', name: '睏倦之眼', desc: '半睡半醒的眼神，修練到深夜的人很適合。', extra: [[5, 5, 'b'], [6, 5, 'b'], [9, 5, 'b'], [10, 5, 'b']] },
+  { id: 'eye5', name: '赤瞳', desc: '泛著紅光的眼睛，據說是修練有成的象徵。', extra: [[5, 4, 'n'], [10, 4, 'n'], [5, 5, '#ff3b3b'], [6, 5, '#8a0f18'], [9, 5, '#8a0f18'], [10, 5, '#ff3b3b']] },
+];
+const SCARVES = [
+  { id: 'scarf1', name: '翠綠領巾', desc: '像竹林一樣清爽的綠色領巾。', pal: { r: '#3fbf6a', R: '#27804a' } },
+  { id: 'scarf2', name: '天藍領巾', desc: '晴空顏色的領巾，輕盈又醒目。', pal: { r: '#4fa8ff', R: '#2a6fc0' } },
+  { id: 'scarf3', name: '紫電領巾', desc: '帶著神祕氣息的紫色領巾。', pal: { r: '#b878ff', R: '#7a4ab0' } },
+  { id: 'scarf4', name: '純白領巾', desc: '潔白如雪的領巾，夜裡特別顯眼。', pal: { r: '#f4f6ff', R: '#b9c2da' } },
+  { id: 'scarf5', name: '金色領巾', desc: '閃著金光的領巾，只有堅持下來的忍者才配得上。', pal: { r: '#ffd43b', R: '#c9971a' } },
+];
+const PETS = [
+  {
+    id: 'dog', name: '柴犬', desc: '忠心耿耿的柴犬，一路陪在你的身邊。施展忍術時會氣呼呼地瞪著你。',
+    pal: { o: '#e8913a', O: '#b8651f', w: '#fff1d6', b: '#10131f', p: '#ff8fa3', r: '#e8413c' },
+    normal: ['.oo......oo.', '.oOo....oOo.', '.oooooooooo.', '.oooooooooo.', '.oobooooboo.', '.owwwwwwwwo.', '.owwwbbwwwo.', '..owwppwwo..', '..oooooooo..', '.oowwwwwwoo.', '.oowwwwwwoo.', '.owo.OO.owo.'],
+    angry: ['.oo......oo.', '.oOo....oOo.', '.oooooooooo.', '.oobboobboo.', '.oobooooboo.', '.owwwwwwwwo.', '.owwwbbwwwo.', '..owwrrwwo..', '..oooooooo..', '.oowwwwwwoo.', '.oowwwwwwoo.', '.owo.OO.owo.'],
+  },
+  {
+    id: 'cat', name: '橘貓', desc: '懶洋洋的橘色虎斑貓，平常很乖，被打擾修練會露出兇相。',
+    pal: { o: '#f0a04a', O: '#c26a1c', w: '#fff1d6', b: '#10131f', p: '#ff8fa3', r: '#e8413c' },
+    normal: ['.o........o.', '.oo......oo.', '.oOo....oOo.', '.oooooooooo.', '.oOooOOooOo.', '.oobooooboo.', '.owwwppwwwo.', '..owwwwwwo..', '..oooooooo..', '.oOowwwwoOo.', '.ooowwwwooo.', '.owo.OO.owo.'],
+    angry: ['.o........o.', '.oo......oo.', '.oOo....oOo.', '.oooooooooo.', '.oobboobboo.', '.oobooooboo.', '.owwwppwwwo.', '..owwrrwwo..', '..oooooooo..', '.oOowwwwoOo.', '.ooowwwwooo.', '.owo.OO.owo.'],
+  },
+];
 const SPRC = {};
-function sprites(rank) {
-  rank = rank || 0; if (SPRC[rank]) return SPRC[rank];
-  const pal = Object.assign({}, PAL, LOOKPAL[rank] || {}), ex = LOOKEXTRA[rank] || [];
+function sprites(rank, eyesId, scarfId) {
+  rank = rank || 0; const key = rank + '|' + (eyesId || '') + '|' + (scarfId || '');
+  if (SPRC[key]) return SPRC[key];
+  const sc = SCARVES.find(s => s.id === scarfId), ey = EYES.find(e => e.id === eyesId);
+  const pal = Object.assign({}, PAL, LOOKPAL[rank] || {}, sc ? sc.pal : {}), ex = (LOOKEXTRA[rank] || []).concat(ey ? ey.extra : []);
   const base = spriteCanvas(NINJA, pal, ex), cast = spriteCanvas(NINJA, pal, ex), x = cast.getContext('2d');
   x.clearRect(1, 11, 1, 1); x.clearRect(14, 11, 1, 1);
   x.fillStyle = pal.s; x.fillRect(1, 5, 2, 2); x.fillRect(13, 5, 2, 2);
   x.fillStyle = pal.n; x.fillRect(2, 7, 1, 4); x.fillRect(13, 7, 1, 4);
   x.fillStyle = pal.N; x.fillRect(3, 8, 1, 3); x.fillRect(12, 8, 1, 3);
-  return (SPRC[rank] = { base, cast });
+  return (SPRC[key] = { base, cast });
+}
+const PETC = {};
+function petSprite(id, angry) {
+  const k = id + (angry ? 'A' : 'N'); if (PETC[k]) return PETC[k];
+  const p = PETS.find(q => q.id === id); return (PETC[k] = spriteCanvas(angry ? p.angry : p.normal, p.pal));
 }
 
 function rng(seed) { let s = seed >>> 0 || 1; return () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296; }
@@ -331,7 +388,7 @@ class Stage {
   constructor(canvas, opt) {
     this.c = canvas; canvas.width = W; canvas.height = H;
     this.x = canvas.getContext('2d'); this.x.imageSmoothingEnabled = false;
-    this.cat = '忍術'; this.tier = 0; this.casting = false; this.t = 0; this.parts = []; this.look = 0; this.train = false; this.dmgs = []; this.dshake = 0; this._pp = 0; this.bonus = 1; this.once = false; this._t0 = 0; this.label = ''; this.lcolor = '#fff'; this._lp = null;
+    this.cat = '忍術'; this.tier = 0; this.casting = false; this.t = 0; this.parts = []; this.look = 0; this.train = false; this.dmgs = []; this.dshake = 0; this._pp = 0; this.bonus = 1; this.once = false; this._t0 = 0; this.label = ''; this.lcolor = '#fff'; this._lp = null; this.eyes = null; this.scarf = null; this.pet = null;
     this.rand = rng(Math.floor(Math.random() * 1e9));
     this.stars = Array.from({ length: 26 }, () => [this.rand() * W, this.rand() * 46, this.rand() * 6]);
     this.petals = Array.from({ length: 9 }, () => [this.rand() * W, this.rand() * H, 0.2 + this.rand() * 0.4, this.rand() * 6]);
@@ -343,7 +400,7 @@ class Stage {
   start() { if (this.running) return; this.running = true; this.last = performance.now(); const loop = (n) => { if (!this.running) return; this.raf = requestAnimationFrame(loop); if (n - this.last < 66) return; const dt = Math.min(0.2, (n - this.last) / 1000); this.last = n; this.step(dt); }; this.raf = requestAnimationFrame(loop); }
   stop() { this.running = false; cancelAnimationFrame(this.raf); }
   P(x, y, vx, vy, life, col, s, g) { if (this.parts.length > 420) return; this.parts.push({ x, y, vx, vy, life, max: life, c: col, s: s || 1, g: g || 0 }); }
-  ninja(x, y, a) { const sp = sprites(this.look); this.x.globalAlpha = a; this.x.drawImage(this.casting ? sp.cast : sp.base, Math.round(x), Math.round(y), 32, 38); this.x.globalAlpha = 1; }
+  ninja(x, y, a) { const sp = sprites(this.look, this.eyes, this.scarf); this.x.globalAlpha = a; this.x.drawImage(this.casting ? sp.cast : sp.base, Math.round(x), Math.round(y), 32, 38); this.x.globalAlpha = 1; }
   step(dt) {
     const x = this.x, t = (this.t += dt), R = this.rand, tier = this.tier, cat = this.cat;
     x.globalAlpha = 1;
@@ -368,11 +425,12 @@ class Stage {
         this.dummy(dt);
       }
     }
-    cx += off;
+    const cx0 = cx; cx += off;
     const bob = this.casting ? Math.round(Math.sin(t * 9) * 1) : Math.round(Math.sin(t * 2.5));
     const nx = cx - 16, ny = feet - 38 + bob;
     if (this.casting) this.fx(dt, t, cx, ny, feet);
     x.fillStyle = '#0a0d22aa'; x.fillRect(cx - 12, feet - 1, 24, 2);
+    this.drawPet(cx0, t);
     this.ninja(nx, ny, 1);
     if (this.casting) this.front(dt, t, cx, ny, feet);
     if (proj !== null) this.projDraw(proj, cx, ny);
@@ -386,6 +444,14 @@ class Stage {
     x.globalAlpha = 1;
     this.updateLabel(cx);
     if (this.flash > 0) { x.fillStyle = 'rgba(255,255,255,' + Math.min(0.8, this.flash) + ')'; x.fillRect(0, 0, W, H); this.flash -= dt * 2.2; }
+  }
+  drawPet(cx0, t) {
+    if (!this.pet || !PETS.find(p => p.id === this.pet)) return;
+    const x = this.x, ang = this.casting, spr = petSprite(this.pet, ang), px0 = cx0 - 42;
+    const jx = ang ? Math.round(Math.sin(t * 40)) : 0, by = ang ? 0 : Math.round(Math.sin(t * 3));
+    x.fillStyle = '#0a0d22aa'; x.fillRect(px0 + 1, 77, 22, 2);
+    x.drawImage(spr, px0 + jx, 54 + by, 24, 24);
+    if (ang && Math.sin(t * 14) > -0.3) { x.fillStyle = '#ff3b3b'; x.fillRect(px0 + 20, 51, 6, 2); x.fillRect(px0 + 22, 49, 2, 6); }
   }
   updateLabel(cx) {
     if (!this.label || !this.casting) { if (this.lab) this.lab.style.opacity = 0; return; }
@@ -491,11 +557,11 @@ if (false) module.exports = { NINJA };
 const KEY = 'ninja.v1';
 const FXNAMES = { '忍術': ['火花', '火球', '炎輪', '炎陣', '龍炎', '業火'], '幻術': ['幻霧', '幻旋', '分身', '幻陣', '萬象', '天幻'], '體術': ['疾風', '殘影', '衝擊', '疾影', '氣焰', '雷神'] };
 const $app = document.getElementById('app'), $md = document.getElementById('md');
-function defaultState() { return { v: 1, skills: [], sessions: [], gems: 0, claimed: {}, active: null, pending: null, settings: { sound: true }, updated: 0 }; }
+function defaultState() { return { v: 1, skills: [], sessions: [], gems: 0, claimed: {}, active: null, pending: null, settings: { sound: true }, updated: 0, owned: { dog: 1, cat: 1 }, equip: { eyes: null, scarf: null, pet: null }, login: { last: '', days: 0 }, first7: {}, bonusGems: 0 }; }
 let S = defaultState();
 const LOOKS = [{ name: '入門忍者', need: '初始外型' }, { name: '下忍', need: '任一術達 C 級' }, { name: '中忍', need: '任一術達 B 級' }, { name: '上忍', need: '任一術達 A 級' }];
 const nowTs = () => Date.now() + (S.timeShift || 0);
-let galCat = '忍術', galTier = 0, galLook = null;
+let galCat = '忍術', galTier = 0, galLook = null, galEyes = null, galScarf = null, galPet = null;
 let tab = 'home', selId = null, stage = null, tickT = 0, lastResult = null, pendingPhoto = null, modalStage = null;
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -551,6 +617,7 @@ function icon(name) {
     skills: ['.yyyyyy.', 'yywwwwyy', '.wbbbbw.', '.wwwwww.', '.wbbbbw.', '.wwwwww.', 'yywwwwyy', '.yyyyyy.'],
     train: ['...gg...', '..gwwg..', 'g.gwwg.g', 'ggwbbwgg', 'ggwbbwgg', 'g.gwwg.g', '..gwwg..', '...gg...'],
     log: ['.rrrrrr.', 'rwwwwwwr', 'rwbbbbwr', 'rwwwwwwr', 'rwbbbbwr', 'rwwwwwwr', 'rwbbbwwr', '.rrrrrr.'],
+    look: ['.nnnnnn.', 'nnyyyynn', 'nssssssn', 'nbwssbwn', 'nnssssnn', 'nnrrrrnn', 'nnnnnnnn', '.nnnnnn.'],
     pet: ['r......r', 'rr....rr', 'rrrrrrrr', 'rbrrrrbr', 'rrrrrrrr', 'rrryyrrr', 'rrrrrrrr', '.rrrrrr.'],
     gate: ['rrrrrrrr', '.rrrrrr.', '..r..r..', 'rrrrrrrr', '..r..r..', '..r..r..', '..r..r..', '..r..r..'],
   }[name];
@@ -571,6 +638,33 @@ const skillLabel = s => s.cat + '．' + s.name + '之術';
 const rankColor = s => RANK_COLORS[levelInfo(s.sec / 3600).rank];
 function fxTier(s) { const r = levelInfo(s.sec / 3600).rank; return s.fx === undefined || s.fx === null ? r : Math.min(r, s.fx); }
 function lookIdx() { return ninjaRankIndex(S.skills); }
+const SLOT_NAMES = { eyes: '眼睛', scarf: '領巾', pet: '寵物' };
+const ITEMS = [].concat(EYES.map(e => Object.assign({ slot: 'eyes' }, e)), SCARVES.map(e => Object.assign({ slot: 'scarf' }, e)), PETS.map(e => Object.assign({ slot: 'pet' }, e)));
+const ITEM_SOURCE = { eye5: '首七日獎勵 第 3 天', scarf5: '首七日獎勵 第 7 天', dog: '初始贈送', cat: '初始贈送' };
+const FIRST7 = [{ gems: 5 }, { gems: 10 }, { item: 'eye5' }, { gems: 10 }, { gems: 15 }, { gems: 20 }, { item: 'scarf5' }];
+function itemById(id) { return ITEMS.find(i => i.id === id); }
+function eqCfg() { return { look: lookIdx(), eyes: S.equip.eyes || null, scarf: S.equip.scarf || null, pet: S.equip.pet || null }; }
+const ICONC = {};
+function itemIcon(it) {
+  if (ICONC[it.id]) return ICONC[it.id];
+  const c = document.createElement('canvas'); c.width = 64; c.height = 64; const x = c.getContext('2d'); x.imageSmoothingEnabled = false;
+  let src, sx = 0, sy = 0, sw = 0, sh = 0, k = 1;
+  if (it.slot === 'eyes') { src = sprites(0, it.id, null).base; sx = 3; sy = 2; sw = 10; sh = 6; k = 6; }
+  else if (it.slot === 'scarf') { src = sprites(0, null, it.id).base; sx = 4; sy = 5; sw = 12; sh = 6; k = 5; }
+  else { src = petSprite(it.id, false); sw = 12; sh = 12; k = 5; }
+  x.drawImage(src, sx, sy, sw, sh, Math.round((64 - sw * k) / 2), Math.round((64 - sh * k) / 2), sw * k, sh * k);
+  return (ICONC[it.id] = c.toDataURL());
+}
+function calKey(ts) { const d = new Date(ts); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+function checkLogin() {
+  const k = calKey(nowTs()); if (S.login.last === k) return false;
+  S.login.last = k; S.login.days = (S.login.days || 0) + 1; S.gems = (S.gems || 0) + 3; S.bonusGems = (S.bonusGems || 0) + 3; save(); return true;
+}
+function loginPopup() {
+  const n = S.login.days, avail = [1, 2, 3, 4, 5, 6, 7].filter(i => n >= i && !S.first7[i]);
+  modal('<h2>每日登入獎勵</h2><div style="text-align:center;margin:10px 0"><div style="font-size:15px">累積登入第 ' + n + ' 天</div><div style="font-size:30px;margin:8px 0"><span class="mg"></span> +3 勾玉</div>' + (avail.length ? '<div class="dim">首七日獎勵第 ' + avail.join('、') + ' 天可以領取，到道場領取吧</div>' : '') + '</div><button class="btn" data-a="closeModal">收下</button>');
+  Sfx.gem();
+}
 function runBanner() {
   if (!S.active) return '';
   const s = skillById(S.active.skillId);
@@ -583,7 +677,7 @@ function topbar() {
   return '<div class="top"><span class="badge">' + NINJA_RANKS[nr] + '</span>' + (S.timeShift ? '<span class="badge" style="background:#6a3fc0">模擬 ' + dayKey(nowTs()).slice(5) + '</span>' : '') + '<span class="sp"></span><span class="gem"><i></i>' + (S.gems || 0) + '</span><button class="ibtn" data-a="settings">⚙</button></div>';
 }
 function nav() {
-  const items = [['home', '道場', 'home'], ['skills', '技能', 'skills'], ['train', '修練', 'train'], ['pet', '寵物', 'pet'], ['dungeon', '關卡', 'gate']];
+  const items = [['home', '道場', 'home'], ['skills', '技能', 'skills'], ['train', '修練', 'train'], ['look', '外觀', 'look'], ['pet', '寵物', 'pet'], ['dungeon', '關卡', 'gate']];
   return '<div class="nav">' + items.map(([k, l, ic]) => '<button data-a="tab" data-v="' + k + '" class="' + (tab === k || (k === 'home' && (tab === 'log' || tab === 'gallery')) ? 'on' : '') + '">' + icon(ic) + l + '</button>').join('') + '</div>';
 }
 function render() {
@@ -591,12 +685,13 @@ function render() {
   if (S.pending) tab = 'train';
   const locked = S.pending;
   let v = '';
-  if (tab === 'home') v = homeView(); else if (tab === 'skills') v = skillsView(); else if (tab === 'train') v = trainView(); else if (tab === 'log') v = logView(); else if (tab === 'pet') v = petView(); else if (tab === 'gallery') v = galleryView();
+  if (tab === 'home') v = homeView(); else if (tab === 'skills') v = skillsView(); else if (tab === 'train') v = trainView(); else if (tab === 'log') v = logView(); else if (tab === 'pet') v = petView(); else if (tab === 'look') v = lookView(); else if (tab === 'gallery') v = galleryView();
   $app.innerHTML = (locked ? '' : topbar()) + '<div class="view' + (locked ? ' sa' : '') + '">' + (tab !== 'train' ? runBanner() : '') + v + '</div>' + (locked ? '' : nav());
   const cv = document.getElementById('st');
   if (cv) {
     stage = new Stage(cv);
     const cfg = JSON.parse(cv.dataset.cfg || '{}');
+    stage.eyes = cfg.eyes || null; stage.scarf = cfg.scarf || null; stage.pet = cfg.pet || null;
     stage.bonus = cfg.bonus || 1; stage.label = cfg.label || ''; stage.lcolor = cfg.lcolor || '#fff';
     stage.set(cfg.cat || '忍術', cfg.tier || 0, !!cfg.cast, cfg.look || 0, !!cfg.train, !!cfg.once);
     stage.start();
@@ -619,9 +714,9 @@ function tick() {
 function homeView() {
   const st = stats(), b = bestSkill();
   const cat = b ? b.cat : '忍術', tier = b ? fxTier(b) : 0;
-  let h = '<div class="stagewrap"><canvas id="st" class="stage" data-cfg=\'' + cfgJ({ cat, tier, tap: 1, look: lookIdx(), label: b ? skillLabel(b) : '', lcolor: b ? rankColor(b) : '#fff' }) + '\'></canvas><div class="ov">' + (b ? titleHTML(b, true) : '見習忍者') + '</div></div>';
+  let h = '<div class="stagewrap"><canvas id="st" class="stage" data-cfg=\'' + cfgJ({ cat, tier, tap: 1, ...eqCfg(), label: b ? skillLabel(b) : '', lcolor: b ? rankColor(b) : '#fff' }) + '\'></canvas><div class="ov">' + (b ? titleHTML(b, true) : '見習忍者') + '</div></div>';
   if (!S.skills.length) {
-    h += '<div class="px"><h3>歡迎，見習忍者</h3><div class="dim" style="font-size:14px">每一次真實的修練，都會讓你的忍術升級。<br>先選定一項想精進的事，把它變成你的第一個忍術。</div><button class="btn" data-a="addSkill">創立第一個忍術</button></div>';
+    h += '<div class="px"><h3>歡迎，見習忍者</h3><div class="dim" style="font-size:14px">每一次真實的修練，都會讓你的忍術升級。<br>先選定一項想精進的事，把它變成你的第一個忍術。</div><button class="btn" data-a="addSkill">創立第一個忍術</button></div>' + first7Card();
     return h;
   }
   h += '<div class="px"><div class="grid3"><div class="stat"><b>' + st.streak + '</b><span>連續天數</span></div><div class="stat"><b>' + st.days + '</b><span>累積天數</span></div><div class="stat"><b>' + fmtHours(st.totalSec) + '</b><span>總小時</span></div></div></div>';
@@ -633,6 +728,7 @@ function homeView() {
     if (nx) msg = '<div class="dim" style="margin-top:8px">再 ' + (nx[0] - st.streak) + ' 天連續修練 → 獲得 ' + nx[1] + ' 勾玉</div>';
   }
   h += '<div class="px"><h3>今日任務</h3><div class="row" style="margin-bottom:6px"><span>修練滿 15 分鐘</span><span class="sp"></span><span class="gem"><i></i>+' + QUEST_GEMS + '</span></div><div class="bar" style="--c:#ffd43b"><i style="width:' + (q * 100) + '%"></i></div><div class="dim" style="margin-top:5px">' + (done ? '✔ 今日任務完成' : fmtDur(st.todaySec) + ' / 15:00') + '</div>' + msg + '</div>';
+  h += first7Card();
   h += '<button class="btn" data-a="tab" data-v="train">' + (S.active ? '回到修練' : '開始修練') + '</button><div class="row"><button class="btn alt sm" data-a="go" data-v="log">修練紀錄</button><button class="btn alt sm" data-a="go" data-v="gallery">素材圖鑑</button></div>';
   return h;
 }
@@ -652,14 +748,14 @@ function trainView() {
   if (!S.skills.length) return '<div class="empty" style="padding-top:60px">先到「技能」新增一個忍術，才能開始修練。<button class="btn" data-a="addSkill">新增技能</button></div>';
   if (!selId || !skillById(selId)) selId = (S.sessions.length && skillById(S.sessions[S.sessions.length - 1].skillId)) ? S.sessions[S.sessions.length - 1].skillId : S.skills[0].id;
   const sel = skillById(selId), li = levelInfo(sel.sec / 3600);
-  let h = '<div class="stagewrap"><canvas id="st" class="stage" data-cfg=\'' + cfgJ({ cat: sel.cat, tier: fxTier(sel), tap: 1, train: 1, once: 1, look: lookIdx(), bonus: damageBonus(sel.sec / 3600), label: skillLabel(sel), lcolor: rankColor(sel) }) + '\'></canvas></div><h3 style="color:var(--gold);font-weight:normal;margin:6px 0">選擇要修練的術</h3>';
+  let h = '<div class="stagewrap"><canvas id="st" class="stage" data-cfg=\'' + cfgJ({ cat: sel.cat, tier: fxTier(sel), tap: 1, train: 1, once: 1, ...eqCfg(), bonus: damageBonus(sel.sec / 3600), label: skillLabel(sel), lcolor: rankColor(sel) }) + '\'></canvas></div><h3 style="color:var(--gold);font-weight:normal;margin:6px 0">選擇要修練的術</h3>';
   for (const s of S.skills) h += '<button class="skill ' + (s.id === selId ? 'sel' : '') + '" data-a="selSkill" data-v="' + s.id + '"><div class="nm" style="margin:0">' + titleHTML(s, false) + '</div></button>';
   h += '<button class="btn" data-a="startTrain">開始修練</button><div class="dim" style="text-align:center">計時以實際時間為準，切換頁面或鎖屏也不會停止</div>';
   return h;
 }
 function runningView() {
   const s = skillById(S.active.skillId), li = levelInfo(s.sec / 3600);
-  return '<div style="padding-top:14px;text-align:center"><div style="font-size:17px;margin:6px 0">' + titleHTML(s, false) + '</div><div class="stagewrap"><canvas id="st" class="stage" data-cfg=\'' + cfgJ({ cat: s.cat, tier: fxTier(s), train: 1, look: lookIdx(), bonus: damageBonus(s.sec / 3600), label: skillLabel(s), lcolor: rankColor(s) }) + '\'></canvas></div><div class="timer" id="tm">00:00</div><div class="dim" id="qh"></div><button class="btn gold" data-a="finish">完成修練</button><button class="btn alt sm" data-a="giveup">放棄</button><div class="dim" style="margin-top:8px">可以先去其他頁面看看，計時不會停止</div></div>';
+  return '<div style="padding-top:14px;text-align:center"><div style="font-size:17px;margin:6px 0">' + titleHTML(s, false) + '</div><div class="stagewrap"><canvas id="st" class="stage" data-cfg=\'' + cfgJ({ cat: s.cat, tier: fxTier(s), train: 1, ...eqCfg(), bonus: damageBonus(s.sec / 3600), label: skillLabel(s), lcolor: rankColor(s) }) + '\'></canvas></div><div class="timer" id="tm">00:00</div><div class="dim" id="qh"></div><button class="btn gold" data-a="finish">完成修練</button><button class="btn alt sm" data-a="giveup">放棄</button><div class="dim" style="margin-top:8px">可以先去其他頁面看看，計時不會停止</div></div>';
 }
 function pendingView() {
   const p = S.pending, s = skillById(p.skillId);
@@ -695,8 +791,12 @@ function galleryView() {
   if (galLook === null) galLook = lookIdx();
   const nr = lookIdx(), bestRank = c => Math.max(-1, ...S.skills.filter(s => s.cat === c).map(s => levelInfo(s.sec / 3600).rank));
   const lookOK = galLook <= nr, fxOK = galTier <= bestRank(galCat);
-  let h = '<button class="btn alt sm" data-a="backHome" style="margin-top:12px">← 返回道場</button><h3 style="color:var(--gold);font-weight:normal;margin:6px 0">素材圖鑑</h3><div class="stagewrap"><canvas id="st" class="stage" data-cfg=\'' + cfgJ({ cat: galCat, tier: galTier, train: 1, look: galLook, label: galCat + '．' + FXNAMES[galCat][galTier], lcolor: RANK_COLORS[galTier] }) + '\'></canvas></div>';
+  let h = '<button class="btn alt sm" data-a="backHome" style="margin-top:12px">← 返回道場</button><h3 style="color:var(--gold);font-weight:normal;margin:6px 0">素材圖鑑</h3><div class="stagewrap"><canvas id="st" class="stage" data-cfg=\'' + cfgJ({ cat: galCat, tier: galTier, train: 1, look: galLook, eyes: galEyes, scarf: galScarf, pet: galPet, label: galCat + '．' + FXNAMES[galCat][galTier], lcolor: RANK_COLORS[galTier] }) + '\'></canvas></div>';
   h += '<div class="px"><div>' + galCat + '．' + FXNAMES[galCat][galTier] + '　<span style="color:' + RANK_COLORS[galTier] + '">' + RANKS[galTier] + '級</span>　<span class="dim">' + (fxOK ? '已解鎖' : '未解鎖（' + RANKS[galTier] + ' 級解鎖）') + '</span></div><div style="margin-top:4px">' + LOOKS[galLook].name + '　<span class="dim">' + LOOKS[galLook].need + '　' + (lookOK ? '已解鎖' : '未解鎖') + '</span></div></div>';
+  const nm = (arr, id) => { const x = arr.find(e => e.id === id); return x ? x.name : '基本'; };
+  h += '<div class="px dim" style="font-size:13px">眼睛：' + nm(EYES, galEyes) + '　領巾：' + nm(SCARVES, galScarf) + '　寵物：' + (galPet ? nm(PETS, galPet) : '無') + '</div>';
+  const chipRow = (arr, cur, key, none) => '<div class="chips"><button class="chip ' + (cur === null ? 'on' : '') + '" data-a="gal" data-v="' + key + ':">' + none + '</button>' + arr.map(e => '<button class="chip ' + (cur === e.id ? 'on' : '') + (S.owned[e.id] ? '' : ' lock') + '" data-a="gal" data-v="' + key + ':' + e.id + '">' + (S.owned[e.id] ? '' : '🔒') + esc(e.name) + '</button>').join('') + '</div>';
+  h += '<div class="px"><h3>眼睛造型</h3>' + chipRow(EYES, galEyes, 'eyes', '基本') + '<h3 style="margin-top:12px">領巾</h3>' + chipRow(SCARVES, galScarf, 'scarf', '基本紅') + '<h3 style="margin-top:12px">寵物</h3>' + chipRow(PETS, galPet, 'pet', '無') + '</div>';
   h += '<div class="px"><h3>忍者外型</h3><div class="chips">' + LOOKS.map((l, i) => '<button class="chip ' + (i === galLook ? 'on' : '') + (i > nr ? ' lock' : '') + '" data-a="gal" data-v="look:' + i + '">' + (i > nr ? '🔒' : '') + l.name + '</button>').join('') + '</div>';
   h += '<h3 style="margin-top:12px">技能特效</h3><div class="chips">' + Object.keys(CATS).map(c => '<button class="chip ' + (c === galCat ? 'on' : '') + '" style="color:' + CATS[c].color + '" data-a="gal" data-v="cat:' + c + '">' + c + '</button>').join('') + '</div><div class="chips">' + FXNAMES[galCat].map((n, i) => '<button class="chip ' + (i === galTier ? 'on' : '') + (i > bestRank(galCat) ? ' lock' : '') + '" style="color:' + RANK_COLORS[i] + '" data-a="gal" data-v="tier:' + i + '">' + (i > bestRank(galCat) ? '🔒' : '') + RANKS[i] + '．' + n + '</button>').join('') + '</div><div class="dim">所有素材都可預覽；新增的特效與外觀會自動加入這裡。</div></div>';
   return h;
@@ -721,7 +821,26 @@ function weekChart(st) {
   });
   return '<svg viewBox="0 0 ' + Wd + ' ' + Ht + '" style="width:100%;display:block;font-family:inherit">' + g + '</svg>';
 }
-function petView() { return '<div class="empty" style="padding-top:90px"><div style="font-size:18px;color:var(--ink)">寵物</div><div style="margin-top:8px">敬請期待</div></div>'; }
+function stageBlock() {
+  const b = bestSkill();
+  return '<div class="stagewrap"><canvas id="st" class="stage" data-cfg=\'' + cfgJ(Object.assign({ cat: b ? b.cat : '忍術', tier: b ? fxTier(b) : 0, tap: 1, label: b ? skillLabel(b) : '忍術', lcolor: b ? rankColor(b) : '#fff' }, eqCfg())) + '\'></canvas></div>';
+}
+function slotGrid(items) {
+  return '<div class="eqgrid">' + items.map(it => { const own = !!S.owned[it.id], on = S.equip[it.slot] === it.id; return '<button class="eqcell ' + (own ? '' : 'lock') + (on ? ' on' : '') + '" data-a="item" data-v="' + it.id + '"><img class="eqi" src="' + itemIcon(it) + '"><div class="eqn">' + esc(it.name) + '</div>' + (on ? '<span class="eqb">已裝備</span>' : '') + (own ? '' : '<span class="eqlk">🔒</span>') + '</button>'; }).join('') + '</div>';
+}
+function lookView() { return stageBlock() + '<div class="px"><h3>外觀裝備</h3>' + slotGrid(ITEMS.filter(i => i.slot !== 'pet')) + '</div>'; }
+function petView() { return stageBlock() + '<div class="px"><h3>寵物</h3>' + slotGrid(ITEMS.filter(i => i.slot === 'pet')) + '<div class="dim" style="margin-top:8px">寵物會站在忍者左側，施展忍術時會氣呼呼的。</div></div>'; }
+function eqState(it) { const own = !!S.owned[it.id], cur = S.equip[it.slot]; if (!own) return { t: '尚未取得', d: 1 }; if (cur === it.id) return { t: '卸下' }; if (cur) return { t: '替換' }; return { t: '裝備' }; }
+function itemModal(id) {
+  const it = itemById(id); if (!it) return; const st = eqState(it);
+  modal('<div class="eqm"><div class="eqleft"><h2 style="margin:0 0 8px">' + esc(it.name) + '</h2><img class="eqimg" src="' + itemIcon(it) + '"></div><div class="eqdesc"><div>' + esc(it.desc) + '</div><div class="dim" style="margin-top:12px">部位：' + SLOT_NAMES[it.slot] + '</div><div class="dim">取得方式：' + (ITEM_SOURCE[it.id] || '尚未開放（之後可由商店或抽獎取得）') + '</div></div></div><button class="btn" ' + (st.d ? 'disabled' : 'data-a="eqDo" data-v="' + it.id + '"') + '>' + st.t + '</button><button class="btn alt" data-a="closeModal">關閉</button>');
+}
+function first7Card() {
+  if ([1, 2, 3, 4, 5, 6, 7].every(i => S.first7[i])) return '';
+  const n = S.login.days || 0;
+  const cells = FIRST7.map((rw, idx) => { const i = idx + 1, done = !!S.first7[i], go = !done && n >= i; return '<button class="f7c ' + (done ? 'done' : go ? 'go' : '') + '" data-a="claim7" data-v="' + i + '"><div class="f7d">第' + i + '天</div><div class="f7r">' + (rw.gems ? '<span class="mg"></span>' + rw.gems : '<img src="' + itemIcon(itemById(rw.item)) + '">') + '</div><div class="f7s">' + (done ? '✔' : go ? '領取' : '') + '</div></button>'; }).join('');
+  return '<div class="px"><h3>首七日獎勵</h3><div class="f7">' + cells + '</div><div class="dim" style="margin-top:6px">累積登入 ' + Math.min(n, 7) + ' / 7 天，每天零點刷新</div></div>';
+}
 
 /* ---------- 技能 modal ---------- */
 let newCat = '忍術';
@@ -741,7 +860,7 @@ function skillModal(id) {
     '<h3 style="color:var(--gold);font-weight:normal;margin:12px 0 4px">施術特效</h3><div class="stagewrap"><canvas id="mst" class="stage"></canvas></div><div class="chips" id="fxchips"></div><div class="dim">點選已解鎖的特效即可裝備（◆ 為目前裝備），修練畫面會用它攻擊木樁</div>' +
     '<button class="btn alt" data-a="closeModal">關閉</button><button class="btn alt sm" data-a="delSkill" data-v="' + s.id + '" style="color:#ff9b97">刪除技能</button>';
   modal(h);
-  const cv = document.getElementById('mst'); skFx = fxTier(s); modalStage = new Stage(cv); modalStage.bonus = damageBonus(s.sec / 3600); modalStage.label = skillLabel(s); modalStage.lcolor = rankColor(s); modalStage.set(s.cat, skFx, true, lookIdx(), true); modalStage.start();
+  const cv = document.getElementById('mst'); skFx = fxTier(s); modalStage = new Stage(cv); modalStage.eyes = S.equip.eyes || null; modalStage.scarf = S.equip.scarf || null; modalStage.pet = S.equip.pet || null; modalStage.bonus = damageBonus(s.sec / 3600); modalStage.label = skillLabel(s); modalStage.lcolor = rankColor(s); modalStage.set(s.cat, skFx, true, lookIdx(), true); modalStage.start();
   modalStage.skill = s;
   drawFxChips();
 }
@@ -751,17 +870,18 @@ function drawFxChips() {
 }
 function settingsModal() {
   modal('<h2>設定</h2><div class="row" style="margin-bottom:10px"><span>音效</span><span class="sp"></span><button class="btn alt sm" data-a="toggleSound">' + (S.settings.sound ? '開啟' : '關閉') + '</button></div>' +
-    '<h3 style="color:var(--gold);font-weight:normal;margin:8px 0">備份</h3><div class="dim" style="margin-bottom:6px">複製下方文字存好，換裝置時貼到「還原」。（照片不含在備份內）</div><textarea id="bk" readonly style="min-height:60px">' + esc(JSON.stringify({ v: 1, skills: S.skills, sessions: S.sessions, gems: S.gems, claimed: S.claimed, settings: S.settings })) + '</textarea><button class="btn alt sm" data-a="copyBackup">複製備份</button>' +
+    '<h3 style="color:var(--gold);font-weight:normal;margin:8px 0">備份</h3><div class="dim" style="margin-bottom:6px">複製下方文字存好，換裝置時貼到「還原」。（照片不含在備份內）</div><textarea id="bk" readonly style="min-height:60px">' + esc(JSON.stringify({ v: 1, skills: S.skills, sessions: S.sessions, gems: S.gems, claimed: S.claimed, settings: S.settings, owned: S.owned, equip: S.equip, login: S.login, first7: S.first7, bonusGems: S.bonusGems })) + '</textarea><button class="btn alt sm" data-a="copyBackup">複製備份</button>' +
     '<h3 style="color:var(--gold);font-weight:normal;margin:10px 0 6px">還原</h3><textarea id="rs" placeholder="貼上備份文字" style="min-height:60px"></textarea><button class="btn alt sm" data-a="restore">還原資料</button>' +
     testSection() + '<h3 style="color:var(--gold);font-weight:normal;margin:10px 0 6px">重置</h3><button class="btn alt sm" data-a="reset" style="color:#ff9b97">清除所有資料</button><button class="btn" data-a="closeModal">關閉</button>');
 }
 function testSection() {
-  if (!S.skills.length) return '';
+  const gearBtns = '<div class="row" style="flex-wrap:wrap"><button class="btn alt sm" data-a="simUnlock">解鎖全部裝備</button><button class="btn alt sm" data-a="simGearReset" style="color:#ff9b97">重置裝備／登入／七日獎勵</button></div>';
+  if (!S.skills.length) return '<h3 style="color:var(--gold);font-weight:normal;margin:10px 0 6px">測試工具（臨時）</h3>' + gearBtns;
   const sim = dayKey(nowTs());
   let h = '<h3 style="color:var(--gold);font-weight:normal;margin:10px 0 6px">測試工具（臨時）</h3><div class="dim" style="margin-bottom:6px">增加時數、模擬修練都會產生標示（模擬）的紀錄（計入今日任務、連續天數、勾玉），可一鍵清除；把時數往下調則直接扣除。</div>';
   h += S.skills.map(k => '<div style="margin:8px 0"><div style="margin-bottom:4px">' + titleHTML(k, true) + '　<span class="dim">' + (k.sec / 3600).toFixed(1) + 'h</span></div><div class="row"><input type="text" inputmode="decimal" id="th_' + k.id + '" placeholder="小時" style="width:80px"><button class="btn alt sm" data-a="thSet" data-v="' + k.id + '">設定</button><button class="btn alt sm" data-a="thAdd" data-v="' + k.id + '|1">+1h</button><button class="btn alt sm" data-a="thAdd" data-v="' + k.id + '|10">+10h</button></div><div class="row"><button class="btn alt sm" data-a="simSes" data-v="' + k.id + '">模擬修練 30 分</button></div></div>').join('');
   h += '<div style="margin:10px 0"><div>模擬日期：' + sim + (S.timeShift ? '（+' + Math.round(S.timeShift / 864e5) + ' 天）' : '（今天）') + '</div><div class="row" style="flex-wrap:wrap"><button class="btn alt sm" data-a="simDay" data-v="1">+1 天</button><button class="btn alt sm" data-a="simDay" data-v="7">+7 天</button><button class="btn alt sm" data-a="simDay" data-v="0">回到今天</button></div>';
-  h += '<div class="row" style="margin-top:6px"><input type="text" inputmode="numeric" id="simN" placeholder="天數" style="width:80px"><button class="btn alt sm" data-a="simRun">連續模擬 N 天（每天 30 分）</button></div><div class="dim">連續模擬使用「修練」頁目前選擇的技能；中間想斷掉就先按「+1 天」略過一天。</div><button class="btn alt sm" data-a="simClear" style="color:#ff9b97">清除所有模擬紀錄</button></div>';
+  h += '<div class="row" style="margin-top:6px"><input type="text" inputmode="numeric" id="simN" placeholder="天數" style="width:80px"><button class="btn alt sm" data-a="simRun">連續模擬 N 天（每天 30 分）</button></div><div class="dim">連續模擬使用「修練」頁目前選擇的技能；中間想斷掉就先按「+1 天」略過一天。</div><button class="btn alt sm" data-a="simClear" style="color:#ff9b97">清除所有模擬紀錄</button></div>' + gearBtns;
   return h;
 }
 async function setHours(id, hours) {
@@ -806,7 +926,24 @@ async function breakthroughs(r) {
 const A = {
   tab(v) { if (v === 'dungeon') { modal('<h2>關卡</h2><div style="margin:10px 0 16px;font-size:17px;text-align:center">關卡功能開發中</div><button class="btn alt" data-a="closeModal">好</button>'); return; } tab = v; lastResult = null; render(); window.scrollTo(0, 0); },
   go(v) { tab = v; render(); window.scrollTo(0, 0); },
-  gal(v) { const [k, x] = v.split(':'); if (k === 'look') galLook = +x; else if (k === 'cat') galCat = x; else galTier = +x; render(); },
+  gal(v) { const i = v.indexOf(':'), k = v.slice(0, i), x = v.slice(i + 1); if (k === 'look') galLook = +x; else if (k === 'cat') galCat = x; else if (k === 'eyes') galEyes = x || null; else if (k === 'scarf') galScarf = x || null; else if (k === 'pet') galPet = x || null; else galTier = +x; render(); },
+  item(v) { itemModal(v); },
+  eqDo(v) {
+    const it = itemById(v); if (!it || !S.owned[v]) return; const was = S.equip[it.slot] === v;
+    S.equip[it.slot] = was ? null : v; save(); closeModal(); render(); toast(was ? '已卸下「' + it.name + '」' : '已裝備「' + it.name + '」');
+  },
+  claim7(v) {
+    const i = +v; if (S.first7[i]) return; if ((S.login.days || 0) < i) { toast('累積登入滿 ' + i + ' 天後可領取'); return; }
+    const rw = FIRST7[i - 1]; S.first7[i] = 1; let body;
+    if (rw.gems) { S.gems = (S.gems || 0) + rw.gems; S.bonusGems = (S.bonusGems || 0) + rw.gems; body = '<div style="font-size:30px;margin:8px 0"><span class="mg"></span> +' + rw.gems + ' 勾玉</div>'; }
+    else { S.owned[rw.item] = 1; const it = itemById(rw.item); body = '<img class="eqimg" style="width:96px" src="' + itemIcon(it) + '"><div style="font-size:18px;margin:8px 0">' + esc(it.name) + '</div><div class="dim">已加入外觀裝備欄</div>'; }
+    save(); render(); modal('<h2>首七日獎勵　第 ' + i + ' 天</h2><div style="text-align:center;margin:10px 0">' + body + '</div><button class="btn" data-a="closeModal">收下</button>'); Sfx.gem();
+  },
+  simUnlock() { ITEMS.forEach(it => S.owned[it.id] = 1); save(); render(); settingsModal(); toast('已解鎖全部裝備'); },
+  simGearReset() {
+    S.owned = { dog: 1, cat: 1 }; S.equip = { eyes: null, scarf: null, pet: null }; S.login = { last: '', days: 0 }; S.first7 = {};
+    S.gems = Math.max(0, (S.gems || 0) - (S.bonusGems || 0)); S.bonusGems = 0; save(); render(); settingsModal(); toast('已重置裝備、登入與七日獎勵');
+  },
   backHome() { tab = 'home'; lastResult = null; render(); window.scrollTo(0, 0); },
   addSkill() { addSkillModal(); },
   pickCat(v) { newCat = v; document.querySelectorAll('.cat').forEach(e => e.classList.toggle('on', e.dataset.v === v)); },
@@ -841,7 +978,7 @@ const A = {
     breakthroughs(r);
   },
   settings() { settingsModal(); },
-  simDay(v) { S.timeShift = +v === 0 ? 0 : (S.timeShift || 0) + (+v) * 864e5; save(); render(); settingsModal(); },
+  simDay(v) { S.timeShift = +v === 0 ? 0 : (S.timeShift || 0) + (+v) * 864e5; save(); const nl = checkLogin(); render(); if (nl) loginPopup(); else settingsModal(); },
   async simSes(v) {
     const k = skillById(v); if (!k) return; const nb = ninjaRankIndex(S.skills), b = levelInfo(k.sec / 3600), end = nowTs();
     const r = addSession(S, v, 1800, end - 1800e3, end, '（模擬）'); r.session.sim = 1; save(); render();
@@ -861,7 +998,7 @@ const A = {
     S.sessions = S.sessions.filter(x => !x.sim); S.timeShift = 0;
     const all = pendingRewards({ sessions: S.sessions, claimed: {} }, nowTs()), keep = {}; let g = 0;
     for (const r of all) { keep[r.key] = 1; g += r.gems; }
-    S.claimed = keep; S.gems = g; save(); render(); settingsModal(); toast('已清除模擬紀錄');
+    S.claimed = keep; S.gems = g + (S.bonusGems || 0); save(); render(); settingsModal(); toast('已清除模擬紀錄');
   },
   thSet(v) { const h = parseFloat((document.getElementById('th_' + v).value || '').trim()); if (isNaN(h)) { toast('請輸入小時數'); return; } setHours(v, h); },
   thAdd(v) { const [id, n] = v.split('|'), k = skillById(id); setHours(id, k.sec / 3600 + (+n)); },
@@ -887,10 +1024,13 @@ document.addEventListener('change', async e => {
   if (e.target.id !== 'ph' || !e.target.files[0]) return;
   try { pendingPhoto = await resizePhoto(e.target.files[0]); document.getElementById('phbox').innerHTML = '<img class="photoprev" src="' + pendingPhoto + '">'; } catch (er) { toast('照片讀取失敗'); }
 });
-document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { tick(); if (checkLogin()) { render(); loginPopup(); } } });
+setInterval(() => { if (checkLogin()) { render(); loginPopup(); } }, 60000);
 
 load(); Sfx.on = S.settings.sound !== false;
+const firstLogin = checkLogin();
 render();
+if (firstLogin) loginPopup();
 document.querySelectorAll('img[data-pid]').forEach(i => { if (!i.getAttribute('src')) fetchPhoto(i.dataset.pid, i); });
 initDb();
 
