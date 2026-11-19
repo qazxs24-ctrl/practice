@@ -836,7 +836,7 @@ function resultView() {
 }
 function logView() {
   const st = stats();
-  let h = '<div class="galwrap"><div class="galfix"><button class="btn alt sm" data-a="backHome" style="margin-top:12px">← 返回道場</button>' + '<div class="px"><h3>修練紀錄</h3><div class="grid3" style="grid-template-columns:repeat(4,1fr)"><div class="stat"><b>' + st.days + '</b><span>累積天</span></div><div class="stat"><b>' + st.streak + '</b><span>連續</span></div><div class="stat"><b>' + st.best + '</b><span>最長</span></div><div class="stat"><b>' + fmtHours(st.totalSec) + '</b><span>小時</span></div></div></div>';
+  let h = '<button class="btn alt sm" data-a="backHome" style="margin-top:12px">← 返回道場</button>' + '<div class="px"><h3>修練紀錄</h3><div class="grid3" style="grid-template-columns:repeat(4,1fr)"><div class="stat"><b>' + st.days + '</b><span>累積天</span></div><div class="stat"><b>' + st.streak + '</b><span>連續</span></div><div class="stat"><b>' + st.best + '</b><span>最長</span></div><div class="stat"><b>' + fmtHours(st.totalSec) + '</b><span>小時</span></div></div></div>';
   h += '<div class="px"><h3>近 7 日修練時間</h3>' + weekChart(st) + '</div>';
   const hrs = st.totalSec / 3600, cl = S.claimed || {};
   const ms = (arr, pre, val, unit) => arr.map(([n, g]) => '<div class="ms ' + (val >= n ? 'ok' : '') + '"><span>' + (val >= n ? '✔ ' : '') + (pre === 'hour' ? '累積 ' + n + ' 小時' : pre === 'streak' ? '連續 ' + n + ' 天' : '累積 ' + n + ' 天') + '</span><span>' + g + ' 勾玉</span></div>').join('');
@@ -854,7 +854,7 @@ function galleryView() {
   if (galLook === null) galLook = lookIdx();
   const nr = lookIdx(), bestRank = c => Math.max(-1, ...S.skills.filter(s => s.cat === c).map(s => levelInfo(s.sec / 3600).rank));
   const lookOK = galLook <= nr, fxOK = galTier <= bestRank(galCat);
-  let h = '<button class="btn alt sm" data-a="backHome" style="margin-top:12px">← 返回道場</button><h3 style="color:var(--gold);font-weight:normal;margin:6px 0">素材圖鑑</h3><div class="stagewrap"><canvas id="st" class="stage" data-cfg=\'' + cfgJ({ cat: galCat, tier: galTier, train: 1, look: galLook, eyes: galEyes, scarf: galScarf, pet: galPet, label: galCat + '．' + FXNAMES[galCat][galTier], lcolor: RANK_COLORS[galTier] }) + '\'></canvas></div>';
+  let h = '<div class="galwrap"><div class="galfix"><button class="btn alt sm" data-a="backHome" style="margin-top:12px">← 返回道場</button><h3 style="color:var(--gold);font-weight:normal;margin:6px 0">素材圖鑑</h3><div class="stagewrap"><canvas id="st" class="stage" data-cfg=\'' + cfgJ({ cat: galCat, tier: galTier, train: 1, look: galLook, eyes: galEyes, scarf: galScarf, pet: galPet, label: galCat + '．' + FXNAMES[galCat][galTier], lcolor: RANK_COLORS[galTier] }) + '\'></canvas></div>';
   h += '<div class="px"><div>' + galCat + '．' + FXNAMES[galCat][galTier] + '　<span style="color:' + RANK_COLORS[galTier] + '">' + RANKS[galTier] + '級</span>　<span class="dim">' + (fxOK ? '已解鎖' : '未解鎖（' + RANKS[galTier] + ' 級解鎖）') + '</span></div><div style="margin-top:4px">' + LOOKS[galLook].name + '　<span class="dim">' + LOOKS[galLook].need + '　' + (lookOK ? '已解鎖' : '未解鎖') + '</span></div></div>';
   const nm = (arr, id) => { const x = arr.find(e => e.id === id); return x ? x.name : '基本'; };
   h += '</div><div class="galscroll">';
