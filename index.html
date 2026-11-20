@@ -373,13 +373,30 @@ const PETS = [
   },
 ];
 const SPRC = {};
+function poseRows(kind) {
+  const g = NINJA.map(q => q.split(''));
+  const put = (x, y, c) => { if (y >= 0 && y < g.length && x >= 0 && x < 32) g[y][x] = c; };
+  const clearArm = (x0, x1) => { for (let y = 18; y <= 32; y++) for (let x = x0; x <= x1; x++) g[y][x] = '.'; };
+  const cross = (sx, dir) => {
+    for (let i = 0; i <= 10; i++) { const x = sx + dir * i, y = 19 + Math.floor(i * 6 / 10); put(x, y - 1, 'n'); put(x, y, 'N'); put(x, y + 1, 'N'); put(x, y + 2, 'n'); }
+    const hx = sx + dir * 11; for (let dx = -1; dx <= 0; dx++) for (let dy = 0; dy <= 1; dy++) put(hx + dx, 25 + dy, 's');
+    for (let dx = -2; dx <= 1; dx++) { put(hx + dx, 24, 'n'); put(hx + dx, 27, 'n'); } put(hx - 2, 25, 'n'); put(hx - 2, 26, 'n'); put(hx + 1, 25, 'n'); put(hx + 1, 26, 'n');
+  };
+  if (kind === 'prep') { clearArm(23, 26); cross(22, -1); }
+  else if (kind === 'cross') { clearArm(5, 8); clearArm(23, 26); cross(22, -1); cross(9, 1); }
+  else if (kind === 'throw') {
+    clearArm(23, 26);
+    for (let x = 23; x <= 31; x++) { put(x, 19, 'n'); put(x, 20, x < 29 ? 'N' : 's'); put(x, 21, x < 29 ? 'N' : 's'); put(x, 22, 'n'); }
+  }
+  return g.map(q => q.join(''));
+}
 function sprites(rank, eyesId, scarfId) {
   rank = rank || 0; const key = rank + '|' + (eyesId || '') + '|' + (scarfId || '');
   if (SPRC[key]) return SPRC[key];
   const sc = SCARVES.find(s => s.id === scarfId), ey = EYES.find(e => e.id === eyesId);
   const pal = Object.assign({}, PAL, LOOKPAL[rank] || {}, sc ? sc.pal : {}), ex = (LOOKEXTRA[rank] || []).concat(ey ? ey.extra : []);
   const base = spriteCanvas(NINJA, pal, ex), cast = spriteCanvas(NINJA_CAST, pal, ex);
-  return (SPRC[key] = { base, cast });
+  return (SPRC[key] = { base, cast, prep: spriteCanvas(poseRows('prep'), pal, ex), throw: spriteCanvas(poseRows('throw'), pal, ex), cross: spriteCanvas(poseRows('cross'), pal, ex) });
 }
 const PETC = {};
 function petSprite(id, angry) {
@@ -448,7 +465,7 @@ class Stage {
   constructor(canvas, opt) {
     this.c = canvas; canvas.width = W * 2; canvas.height = H * 2;
     this.x = canvas.getContext('2d'); this.x.imageSmoothingEnabled = false;
-    this.cat = '忍術'; this.tier = 0; this.casting = false; this.t = 0; this.parts = []; this.look = 0; this.train = false; this.dmgs = []; this.dshake = 0; this._pp = 0; this.bonus = 1; this.once = false; this._t0 = 0; this.label = ''; this.lcolor = '#fff'; this._lp = null; this.eyes = null; this.scarf = null; this.pet = null;
+    this.cat = '忍術'; this.tier = 0; this.casting = false; this.t = 0; this.parts = []; this.look = 0; this.train = false; this.dmgs = []; this.dshake = 0; this._pp = 0; this.bonus = 1; this.once = false; this._t0 = 0; this.label = ''; this.lcolor = '#fff'; this._lp = null; this.eyes = null; this.scarf = null; this.pet = null; this.pose = null; this.kun = null; this.slashes = []; this._la = 1; this._ku = -1;;
     this.rand = rng(Math.floor(Math.random() * 1e9));
     this.stars = Array.from({ length: 26 }, () => [this.rand() * W, this.rand() * 46, this.rand() * 6]);
     this.petals = Array.from({ length: 9 }, () => [this.rand() * W, this.rand() * H, 0.2 + this.rand() * 0.4, this.rand() * 6]);
@@ -456,11 +473,11 @@ class Stage {
     this.raf = 0; this.last = 0; this.running = false; this.flash = 0; this.shake = 0;
     this.burst = null;
   }
-  set(cat, tier, casting, look, train, once) { this.cat = cat; this.tier = Math.max(0, Math.min(5, tier)); this.casting = casting; this.look = look || 0; this.train = !!train; this.once = !!once; this._t0 = this.t; this.dmgs = []; this._pp = 0; this.parts.length = 0; }
-  start() { if (this.running) return; this.running = true; this.last = performance.now(); const loop = (n) => { if (!this.running) return; this.raf = requestAnimationFrame(loop); if (n - this.last < 66) return; const dt = Math.min(0.2, (n - this.last) / 1000); this.last = n; this.step(dt); }; this.raf = requestAnimationFrame(loop); }
+  set(cat, tier, casting, look, train, once) { if (cat === '苦無' && casting) { train = true; once = true; } this.pose = null; this.kun = null; this.slashes = []; this._ku = -1; this.cat = cat; this.tier = Math.max(0, Math.min(5, tier)); this.casting = casting; this.look = look || 0; this.train = !!train; this.once = !!once; this._t0 = this.t; this.dmgs = []; this._pp = 0; this.parts.length = 0; }
+  start() { if (this.running) return; this.running = true; this.last = performance.now(); const loop = (n) => { if (!this.running) return; this.raf = requestAnimationFrame(loop); if (n - this.last < 33) return; const dt = Math.min(0.2, (n - this.last) / 1000); this.last = n; this.step(dt); }; this.raf = requestAnimationFrame(loop); }
   stop() { this.running = false; cancelAnimationFrame(this.raf); }
   P(x, y, vx, vy, life, col, s, g) { if (this.parts.length > 420) return; this.parts.push({ x, y, vx, vy, life, max: life, c: col, s: s || 1, g: g || 0 }); }
-  ninja(x, y, a) { const sp = sprites(this.look, this.eyes, this.scarf); this.x.globalAlpha = a; this.x.drawImage(this.casting ? sp.cast : sp.base, Math.round(x * 2) / 2, Math.round(y * 2) / 2, 32, 38); this.x.globalAlpha = 1; }
+  ninja(x, y, a) { const sp = sprites(this.look, this.eyes, this.scarf); this.x.globalAlpha = a; this.x.drawImage((this.pose && sp[this.pose]) || (this.casting ? sp.cast : sp.base), Math.round(x * 2) / 2, Math.round(y * 2) / 2, 32, 38); this.x.globalAlpha = 1; }
   step(dt) {
     const x = this.x, t = (this.t += dt), R = this.rand, tier = this.tier, cat = this.cat;
     x.setTransform(2, 0, 0, 2, 0, 0); x.imageSmoothingEnabled = false;
@@ -479,21 +496,25 @@ class Stage {
       this._lp = null; cx = 44; const e = t - this._t0, done = this.once && e >= 3.6, p = this.once ? Math.min(e, 3.59) : e % 3.6;
       if (done) { this.casting = false; this.dummy(dt); }
       else {
+        if (this.cat === '苦無') { this.kunaiTick(p, dt); this._lp = p; this.dummy(dt); }
+        else {
         if (this._pp < 1.9 && p >= 1.9) this.hit();
         this._pp = p; this.casting = p < 1.9; this._lp = p;
         if (this.cat === '體術') { if (p >= 1.4 && p < 1.9) off = (p - 1.4) / 0.5 * 52; else if (p >= 1.9 && p < 2.7) off = 52 * (1 - (p - 1.9) / 0.8); }
         else if (p >= 1.4 && p < 1.9) proj = (p - 1.4) / 0.5;
         this.dummy(dt);
+        }
       }
     }
     const cx0 = cx; cx += off;
     const bob = this.casting ? Math.round(Math.sin(t * 9) * 1) : Math.round(Math.sin(t * 2.5));
     const nx = cx - 16, ny = feet - 38 + bob;
-    if (this.casting) this.fx(dt, t, cx, ny, feet);
+    if (this.casting && this.cat !== '苦無') this.fx(dt, t, cx, ny, feet);
     x.fillStyle = '#0a0d22aa'; x.fillRect(cx - 12, feet - 1, 24, 2);
     this.drawPet(cx0, t);
     this.ninja(nx, ny, 1);
-    if (this.casting) this.front(dt, t, cx, ny, feet);
+    if (this.casting && this.cat !== '苦無') this.front(dt, t, cx, ny, feet);
+    this.kunaiDraw(dt);
     if (proj !== null) this.projDraw(proj, cx, ny);
     // 粒子
     for (let i = this.parts.length - 1; i >= 0; i--) {
@@ -505,6 +526,85 @@ class Stage {
     x.globalAlpha = 1;
     this.updateLabel(cx);
     if (this.flash > 0) { x.fillStyle = 'rgba(255,255,255,' + Math.min(0.8, this.flash) + ')'; x.fillRect(0, 0, W, H); this.flash -= dt * 2.2; }
+  }
+  kScript(tier) {
+    const KS = Stage._ks || (Stage._ks = {}); if (KS[tier]) return KS[tier];
+    const HX = 60, HY = 60, TX = 113, ang = (a, b, c, d) => Math.atan2(d - b, c - a);
+    const leg = (t0, t1, x0, y0, x1, y1, wind, extra) => Object.assign({ t0, t1, x0, y0, x1, y1, wind: !!wind, ang: ang(x0, y0, x1, y1) }, extra || {});
+    const sc = { poses: [[0, 0.2, 'prep']], ks: [], dur: 0 };
+    if (tier === 0) { sc.poses.push([0.2, 0.5, 'throw']); sc.ks.push({ legs: [leg(0.2, 0.6, HX, HY, TX, 60, false, { hit: 1 })] }); }
+    else if (tier === 1) { sc.poses.push([0.2, 0.5, 'throw']); sc.ks.push({ legs: [leg(0.2, 0.4, HX, HY, TX, 60, true, { hit: 1 })] }); }
+    else if (tier === 2) { sc.poses.push([0.2, 0.6, 'throw']); sc.ks.push({ legs: [leg(0.2, 0.4, HX, HY, TX, 60, true, { hit: 1 })] }, { legs: [leg(0.3, 0.5, HX, HY, TX, 60, true, { hit: 1 })] }); }
+    else if (tier === 3) { sc.poses.push([0.2, 0.5, 'throw']); [47, 60, 74].forEach(y => sc.ks.push({ legs: [leg(0.2, 0.4, HX, HY, TX, y, true, { hit: 1 })] })); }
+    else if (tier === 4) {
+      sc.poses.push([0.2, 0.6, 'cast']);
+      const ax = [88.1, 83.6, 78.6, 74.5], ty = [54, 60, 66, 72];
+      ax.forEach((x, i) => { const sx = i % 2 ? 54.5 : 33.5, t0 = 0.5 + i * 0.2; sc.ks.push({ legs: [leg(0.2, 0.5, sx, 47, x, 22.7, false), leg(t0, t0 + 0.1, x, 22.7, TX, ty[i], true, { hit: 1 })] }); });
+    } else {
+      sc.poses = [[0, 0.2, 'cross'], [0.2, 0.5, 'cast']];
+      for (let i = 0; i < 10; i++) {
+        const x = 31 + i * 26 / 9, g = i >> 1, t0 = 0.7 + g * 0.1, ty = 48 + (i * 7) % 28, tx = 113 + (i % 3) * 3, sx = tx - 0.4 * (ty + 8);
+        sc.ks.push({ legs: [leg(0.2, 0.4, x, 47, x, -8, false, { vanish: 1 }), leg(t0, t0 + 0.2, sx, -8, tx, ty, true, { hit: (i & 1) ? 0 : 1 })] });
+      }
+    }
+    sc.ks.forEach(k => k.legs.forEach(l => { sc.dur = Math.max(sc.dur, l.t1); }));
+    return (KS[tier] = sc);
+  }
+  kunaiTick(p, dt) {
+    const u = p - 0.3, sc = this.kScript(this.tier), R = this.rand, pu = u < this._ku ? -1 : this._ku; this._ku = u;
+    this.kun = null;
+    if (u < 0 || u > sc.dur + 0.15) { this.casting = false; this.pose = null; this._la = 0; return; }
+    this.casting = true; this._la = Math.max(0, Math.min(1, (u + 0.1) / 0.2, (sc.dur + 0.15 - u) / 0.25));
+    const ps = sc.poses.find(q => u >= q[0] && u < q[1]); this.pose = ps ? ps[2] : 'base';
+    const list = [];
+    sc.ks.forEach(k => {
+      const L = k.legs; let cur = null, rest = null;
+      for (let i = 0; i < L.length; i++) {
+        const l = L[i];
+        if (u >= l.t0 && u <= l.t1) { cur = { l, f: (u - l.t0) / (l.t1 - l.t0) }; break; }
+        if (u > l.t1 && (i + 1 < L.length ? u < L[i + 1].t0 : false)) { rest = { l, nx: L[i + 1] }; break; }
+      }
+      for (const l of L) if (l.hit !== undefined && pu < l.t1 && u >= l.t1) this.kHit(l, sc, k);
+      if (cur) list.push({ x: cur.l.x0 + (cur.l.x1 - cur.l.x0) * cur.f, y: cur.l.y0 + (cur.l.y1 - cur.l.y0) * cur.f, a: cur.l.ang, wind: cur.l.wind });
+      else if (rest && !rest.l.vanish) list.push({ x: rest.l.x1, y: rest.l.y1, a: rest.nx.ang, wind: false });
+    });
+    this.kun = list;
+  }
+  kHit(l, sc, k) {
+    const R = this.rand, tier = this.tier;
+    if (l.hit === 0) return;
+    this.slashes.push({ x: l.x1, y: l.y1, a: l.ang, life: 0.16 });
+    Sfx.stab(); this.dshake = 0.3;
+    for (let i = 0; i < 5; i++) this.P(l.x1, l.y1, (R() - 0.3) * 50, (R() - 0.8) * 40, 0.35, '#ffffff', 1, 90);
+    const n = this.dmgs.length;
+    this.dmgs.push({ x: 100 + (n % 3) * 8, y: 44 - (n % 3) * 5, v: Math.round((40 + R() * 30) * (this.bonus || 1) * (1 + tier * 0.35)), life: 0.9 });
+  }
+  kunaiDraw(dt) {
+    const x = this.x;
+    for (let i = this.slashes.length - 1; i >= 0; i--) {
+      const s = this.slashes[i]; s.life -= dt; if (s.life <= 0) { this.slashes.splice(i, 1); continue; }
+      const age = 1 - s.life / 0.16, Ln = 11 + 5 * age, w = 1.9 * (1 - age) + 0.3;
+      x.save(); x.translate(s.x, s.y); x.rotate(s.a); x.globalAlpha = 1;
+      x.fillStyle = '#ffffff'; x.beginPath(); x.moveTo(-Ln, 0); x.lineTo(0, -w); x.lineTo(Ln, 0); x.lineTo(0, w); x.closePath(); x.fill();
+      x.globalAlpha = 0.35; x.fillStyle = '#bfe3ff'; x.beginPath(); x.moveTo(-Ln - 3, 0); x.lineTo(0, -w * 2); x.lineTo(Ln + 3, 0); x.lineTo(0, w * 2); x.closePath(); x.fill();
+      x.restore();
+    }
+    x.globalAlpha = 1;
+    if (!this.kun) return;
+    for (const k of this.kun) {
+      x.save(); x.translate(k.x, k.y); x.rotate(k.a);
+      if (k.wind) {
+        x.strokeStyle = '#ffffff'; x.lineWidth = 1; x.globalAlpha = 0.95;
+        x.beginPath(); x.moveTo(-4, -4.5); x.lineTo(2, 0); x.lineTo(-4, 4.5); x.stroke();
+        x.globalAlpha = 0.6; x.beginPath(); x.moveTo(-9, -2); x.lineTo(-20, -2); x.moveTo(-9, 2); x.lineTo(-18, 2); x.moveTo(-11, 0); x.lineTo(-24, 0); x.stroke();
+        x.globalAlpha = 1;
+      }
+      x.fillStyle = '#dfe6f5'; x.fillRect(-5, -1.25, 5, 2.5); x.fillStyle = '#ffffff'; x.fillRect(-5, -1.25, 5, 0.75); x.fillRect(0, -0.75, 1.5, 1.5);
+      x.fillStyle = '#4a3326'; x.fillRect(-8.5, -0.75, 3.5, 1.5);
+      x.fillStyle = '#b8c0d8'; x.fillRect(-11, -1.5, 2.5, 0.5); x.fillRect(-11, 1, 2.5, 0.5); x.fillRect(-11, -1.5, 0.5, 3); x.fillRect(-8.9, -1.5, 0.5, 3);
+      x.restore();
+    }
+    x.globalAlpha = 1;
   }
   drawPet(cx0, t) {
     if (!this.pet || !PETS.find(p => p.id === this.pet)) return;
@@ -519,7 +619,7 @@ class Stage {
     if (!this.lab) { const par = this.c.parentNode; if (!par) return; this.lab = document.createElement('div'); this.lab.className = 'skl'; par.appendChild(this.lab); }
     const txt = this.label + '！'; if (this.lab.textContent !== txt) this.lab.textContent = txt;
     this.lab.style.color = this.lcolor;
-    let a = 1; const p = this._lp; if (p !== null) a = Math.max(0, Math.min(1, (p - 0.1) / 0.25, (1.9 - p) / 0.3));
+    let a = 1; const p = this._lp; if (this.cat === '苦無') a = this._la; else if (p !== null) a = Math.max(0, Math.min(1, (p - 0.1) / 0.25, (1.9 - p) / 0.3));
     const cw = this.c.clientWidth || 320, hw = (this.lab.offsetWidth || 0) / 2; let px = cx / 160 * cw; px = Math.max(hw + 4, Math.min(cw - hw - 4, px));
     this.lab.style.left = px + 'px'; this.lab.style.top = '34%'; this.lab.style.opacity = a;
     this.lab.style.transform = 'translate(-50%, calc(-100% + ' + ((1 - a) * -6).toFixed(1) + 'px))';
@@ -607,6 +707,13 @@ const Sfx = {
   init() { if (!this.ctx) { try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { } } if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); },
   tone(f, d, type, v, when) { if (!this.on || !this.ctx) return; const c = this.ctx, t = c.currentTime + (when || 0), o = c.createOscillator(), g = c.createGain(); o.type = type || 'square'; o.frequency.value = f; g.gain.setValueAtTime(v || 0.06, t); g.gain.exponentialRampToValueAtTime(0.0001, t + d); o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + d + 0.02); },
   tap() { this.tone(660, 0.05); },
+  stab() {
+    if (!this.on || !this.ctx) return; const c = this.ctx, t = c.currentTime, n = Math.floor(c.sampleRate * 0.14), buf = c.createBuffer(1, n, c.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 2.2);
+    const src = c.createBufferSource(); src.buffer = buf; const f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.setValueAtTime(2200, t); f.frequency.exponentialRampToValueAtTime(260, t + 0.12);
+    const g = c.createGain(); g.gain.value = 0.32; src.connect(f); f.connect(g); g.connect(c.destination); src.start(t);
+    this.tone(120, 0.09, 'sine', 0.14); this.tone(64, 0.12, 'sine', 0.12, 0.03);
+  },
   start() { [392, 523, 659, 784].forEach((f, i) => this.tone(f, 0.12, 'square', 0.06, i * 0.07)); },
   gem() { this.tone(988, 0.08, 'square', 0.05); this.tone(1319, 0.16, 'square', 0.05, 0.08); },
   level() { [523, 659, 784, 1047, 1319].forEach((f, i) => this.tone(f, 0.18, 'square', 0.07, i * 0.09)); },
@@ -616,7 +723,9 @@ if (false) module.exports = { NINJA };
 
 /* ===== 練習 · 介面與流程 ===== */
 const KEY = 'ninja.v1';
-const FXNAMES = { '忍術': ['火花', '火球', '炎輪', '炎陣', '龍炎', '業火'], '幻術': ['幻霧', '幻旋', '分身', '幻陣', '萬象', '天幻'], '體術': ['疾風', '殘影', '衝擊', '疾影', '氣焰', '雷神'] };
+const FAMS = ['苦無'];
+const FXNAMES = { '苦無': ['苦無', '速射', '連發', '散射', '空落', '天降'], '忍術': ['火花', '火球', '炎輪', '炎陣', '龍炎', '業火'], '幻術': ['幻霧', '幻旋', '分身', '幻陣', '萬象', '天幻'], '體術': ['疾風', '殘影', '衝擊', '疾影', '氣焰', '雷神'] };
+const fxCat = s => (s && s.fam && FXNAMES[s.fam]) ? s.fam : (s ? s.cat : '忍術');
 const $app = document.getElementById('app'), $md = document.getElementById('md');
 function defaultState() { return { v: 1, skills: [], sessions: [], gems: 0, claimed: {}, active: null, pending: null, settings: { sound: true }, updated: 0, owned: { dog: 1, cat: 1 }, equip: { eyes: null, scarf: null, pet: null }, login: { last: '', days: 0 }, first7: {}, bonusGems: 0 }; }
 let S = defaultState();
@@ -778,7 +887,7 @@ function tick() {
 
 function homeView() {
   const st = stats(), b = bestSkill();
-  const cat = b ? b.cat : '忍術', tier = b ? fxTier(b) : 0;
+  const cat = b ? fxCat(b) : '忍術', tier = b ? fxTier(b) : 0;
   let h = '<div class="stagewrap"><canvas id="st" class="stage" data-cfg=\'' + cfgJ({ cat, tier, tap: 1, ...eqCfg(), label: b ? skillLabel(b) : '', lcolor: b ? rankColor(b) : '#fff' }) + '\'></canvas><div class="ov">' + (b ? titleHTML(b, true) : '見習忍者') + '</div></div>';
   if (!S.skills.length) {
     h += '<div class="px"><h3>歡迎，見習忍者</h3><div class="dim" style="font-size:14px">每一次真實的修練，都會讓你的忍術升級。<br>先選定一項想精進的事，把它變成你的第一個忍術。</div><button class="btn" data-a="addSkill">創立第一個忍術</button></div>' + first7Card();
@@ -813,14 +922,14 @@ function trainView() {
   if (!S.skills.length) return '<div class="empty" style="padding-top:60px">先到「技能」新增一個忍術，才能開始修練。<button class="btn" data-a="addSkill">新增技能</button></div>';
   if (!selId || !skillById(selId)) selId = (S.sessions.length && skillById(S.sessions[S.sessions.length - 1].skillId)) ? S.sessions[S.sessions.length - 1].skillId : S.skills[0].id;
   const sel = skillById(selId), li = levelInfo(sel.sec / 3600);
-  let h = '<div class="stagewrap"><canvas id="st" class="stage" data-cfg=\'' + cfgJ({ cat: sel.cat, tier: fxTier(sel), tap: 1, train: 1, once: 1, ...eqCfg(), bonus: damageBonus(sel.sec / 3600), label: skillLabel(sel), lcolor: rankColor(sel) }) + '\'></canvas></div><h3 style="color:var(--gold);font-weight:normal;margin:6px 0">選擇要修練的術</h3>';
+  let h = '<div class="stagewrap"><canvas id="st" class="stage" data-cfg=\'' + cfgJ({ cat: fxCat(sel), tier: fxTier(sel), tap: 1, train: 1, once: 1, ...eqCfg(), bonus: damageBonus(sel.sec / 3600), label: skillLabel(sel), lcolor: rankColor(sel) }) + '\'></canvas></div><h3 style="color:var(--gold);font-weight:normal;margin:6px 0">選擇要修練的術</h3>';
   for (const s of S.skills) h += '<button class="skill ' + (s.id === selId ? 'sel' : '') + '" data-a="selSkill" data-v="' + s.id + '"><div class="nm" style="margin:0">' + titleHTML(s, false) + '</div></button>';
   h += '<button class="btn" data-a="startTrain">開始修練</button><div class="dim" style="text-align:center">計時以實際時間為準，切換頁面或鎖屏也不會停止</div>';
   return h;
 }
 function runningView() {
   const s = skillById(S.active.skillId), li = levelInfo(s.sec / 3600);
-  return '<div style="padding-top:14px;text-align:center"><div style="font-size:17px;margin:6px 0">' + titleHTML(s, false) + '</div><div class="stagewrap"><canvas id="st" class="stage" data-cfg=\'' + cfgJ({ cat: s.cat, tier: fxTier(s), train: 1, ...eqCfg(), bonus: damageBonus(s.sec / 3600), label: skillLabel(s), lcolor: rankColor(s) }) + '\'></canvas></div><div class="timer" id="tm">00:00</div><div class="dim" id="qh"></div><button class="btn gold" data-a="finish">完成修練</button><button class="btn alt sm" data-a="giveup">放棄</button><div class="dim" style="margin-top:8px">可以先去其他頁面看看，計時不會停止</div></div>';
+  return '<div style="padding-top:14px;text-align:center"><div style="font-size:17px;margin:6px 0">' + titleHTML(s, false) + '</div><div class="stagewrap"><canvas id="st" class="stage" data-cfg=\'' + cfgJ({ cat: fxCat(s), tier: fxTier(s), train: 1, ...eqCfg(), bonus: damageBonus(s.sec / 3600), label: skillLabel(s), lcolor: rankColor(s) }) + '\'></canvas></div><div class="timer" id="tm">00:00</div><div class="dim" id="qh"></div><button class="btn gold" data-a="finish">完成修練</button><button class="btn alt sm" data-a="giveup">放棄</button><div class="dim" style="margin-top:8px">可以先去其他頁面看看，計時不會停止</div></div>';
 }
 function pendingView() {
   const p = S.pending, s = skillById(p.skillId);
@@ -864,7 +973,7 @@ function galleryView() {
   const chipRow = (arr, cur, key, none) => '<div class="chips"><button class="chip ' + (cur === null ? 'on' : '') + '" data-a="gal" data-v="' + key + ':">' + none + '</button>' + arr.map(e => '<button class="chip ' + (cur === e.id ? 'on' : '') + (S.owned[e.id] ? '' : ' lock') + '" data-a="gal" data-v="' + key + ':' + e.id + '">' + (S.owned[e.id] ? '' : '🔒') + esc(e.name) + '</button>').join('') + '</div>';
   h += '<div class="px"><h3>眼睛造型</h3>' + chipRow(EYES, galEyes, 'eyes', '基本') + '<h3 style="margin-top:12px">領巾</h3>' + chipRow(SCARVES, galScarf, 'scarf', '基本紅') + '<h3 style="margin-top:12px">寵物</h3>' + chipRow(PETS, galPet, 'pet', '無') + '</div>';
   h += '<div class="px"><h3>忍者外型</h3><div class="chips">' + LOOKS.map((l, i) => '<button class="chip ' + (i === galLook ? 'on' : '') + (i > nr ? ' lock' : '') + '" data-a="gal" data-v="look:' + i + '">' + (i > nr ? '🔒' : '') + l.name + '</button>').join('') + '</div>';
-  h += '<h3 style="margin-top:12px">技能特效</h3><div class="chips">' + Object.keys(CATS).map(c => '<button class="chip ' + (c === galCat ? 'on' : '') + '" style="color:' + CATS[c].color + '" data-a="gal" data-v="cat:' + c + '">' + c + '</button>').join('') + '</div><div class="chips">' + FXNAMES[galCat].map((n, i) => '<button class="chip ' + (i === galTier ? 'on' : '') + (i > bestRank(galCat) ? ' lock' : '') + '" style="color:' + RANK_COLORS[i] + '" data-a="gal" data-v="tier:' + i + '">' + (i > bestRank(galCat) ? '🔒' : '') + RANKS[i] + '．' + n + '</button>').join('') + '</div><div class="dim">所有素材都可預覽；新增的特效與外觀會自動加入這裡。</div></div>';
+  h += '<h3 style="margin-top:12px">技能特效</h3><div class="chips">' + Object.keys(CATS).concat(FAMS).map(c => '<button class="chip ' + (c === galCat ? 'on' : '') + '" style="color:' + (CATS[c] ? CATS[c].color : '#c9d1e6') + '" data-a="gal" data-v="cat:' + c + '">' + c + '</button>').join('') + '</div><div class="chips">' + FXNAMES[galCat].map((n, i) => '<button class="chip ' + (i === galTier ? 'on' : '') + (i > bestRank(galCat) ? ' lock' : '') + '" style="color:' + RANK_COLORS[i] + '" data-a="gal" data-v="tier:' + i + '">' + (i > bestRank(galCat) ? '🔒' : '') + RANKS[i] + '．' + n + '</button>').join('') + '</div><div class="dim">所有素材都可預覽；新增的特效與外觀會自動加入這裡。</div></div>';
   return h + '</div></div>';
 }
 function fmtHM(sec) { const m = Math.round(sec / 60), h = Math.floor(m / 60), mm = m % 60; return h > 0 ? h + '小時' + mm + '分' : mm + '分'; }
@@ -889,7 +998,7 @@ function weekChart(st) {
 }
 function stageBlock() {
   const b = bestSkill();
-  return '<div class="stagewrap"><canvas id="st" class="stage" data-cfg=\'' + cfgJ(Object.assign({ cat: b ? b.cat : '忍術', tier: b ? fxTier(b) : 0, tap: 1, label: b ? skillLabel(b) : '忍術', lcolor: b ? rankColor(b) : '#fff' }, eqCfg())) + '\'></canvas></div>';
+  return '<div class="stagewrap"><canvas id="st" class="stage" data-cfg=\'' + cfgJ(Object.assign({ cat: b ? fxCat(b) : '忍術', tier: b ? fxTier(b) : 0, tap: 1, label: b ? skillLabel(b) : '忍術', lcolor: b ? rankColor(b) : '#fff' }, eqCfg())) + '\'></canvas></div>';
 }
 function slotGrid(items) {
   return '<div class="eqgrid">' + items.map(it => { const own = !!S.owned[it.id], on = S.equip[it.slot] === it.id; return '<button class="eqcell ' + (own ? '' : 'lock') + (on ? ' on' : '') + '" data-a="item" data-v="' + it.id + '"><img class="eqi" src="' + itemIcon(it) + '"><div class="eqn">' + esc(it.name) + '</div>' + (on ? '<span class="eqb">已裝備</span>' : '') + (own ? '' : '<span class="eqlk">🔒</span>') + '</button>'; }).join('') + '</div>';
@@ -923,16 +1032,17 @@ function skillModal(id) {
   const bonus = damageBonus(s.sec / 3600);
   let h = '<h2>' + titleHTML(s, true) + '</h2><div class="chips">' + RANKS.map((r, i) => '<span class="chip ' + (i === li.rank ? 'on' : '') + '" style="color:' + RANK_COLORS[i] + '">' + r + '</span>').join('') + '</div>' +
     '<div class="bar" style="--c:' + li.color + '"><i style="width:' + (li.progress * 100) + '%"></i></div><div class="dim" style="margin:6px 0">累積 ' + fmtHours(s.sec) + ' 小時　傷害加成 ' + (bonus * 100).toFixed(0) + '%<br>' + (li.isMax ? '已達最高境界' : '下一級還需 ' + (li.need - li.into).toFixed(1) + ' 小時') + '</div>' +
-    '<h3 style="color:var(--gold);font-weight:normal;margin:12px 0 4px">施術特效</h3><div class="stagewrap"><canvas id="mst" class="stage"></canvas></div><div class="chips" id="fxchips"></div><div class="dim">點選已解鎖的特效即可裝備（◆ 為目前裝備），修練畫面會用它攻擊木樁</div>' +
+    '<h3 style="color:var(--gold);font-weight:normal;margin:12px 0 4px">施術特效</h3><div class="chips" id="famchips" style="margin-bottom:6px"></div><div class="stagewrap"><canvas id="mst" class="stage"></canvas></div><div class="chips" id="fxchips"></div><div class="dim">點選已解鎖的特效即可裝備（◆ 為目前裝備），修練畫面會用它攻擊木樁</div>' +
     '<button class="btn alt" data-a="closeModal">關閉</button><button class="btn alt sm" data-a="delSkill" data-v="' + s.id + '" style="color:#ff9b97">刪除技能</button>';
   modal(h);
-  const cv = document.getElementById('mst'); skFx = fxTier(s); modalStage = new Stage(cv); modalStage.eyes = S.equip.eyes || null; modalStage.scarf = S.equip.scarf || null; modalStage.pet = S.equip.pet || null; modalStage.bonus = damageBonus(s.sec / 3600); modalStage.label = skillLabel(s); modalStage.lcolor = rankColor(s); modalStage.set(s.cat, skFx, true, lookIdx(), true); modalStage.start();
+  const cv = document.getElementById('mst'); skFx = fxTier(s); modalStage = new Stage(cv); modalStage.eyes = S.equip.eyes || null; modalStage.scarf = S.equip.scarf || null; modalStage.pet = S.equip.pet || null; modalStage.bonus = damageBonus(s.sec / 3600); modalStage.label = skillLabel(s); modalStage.lcolor = rankColor(s); modalStage.set(fxCat(s), skFx, true, lookIdx(), true); modalStage.start();
   modalStage.skill = s;
   drawFxChips();
 }
 function drawFxChips() {
   const s = modalStage.skill, li = levelInfo(s.sec / 3600);
-  document.getElementById('fxchips').innerHTML = FXNAMES[s.cat].map((n, i) => '<button class="chip ' + (i <= li.rank ? '' : 'lock') + (i === skFx ? ' on' : '') + '" style="color:' + RANK_COLORS[i] + '" data-a="fx" data-v="' + i + '">' + (i <= li.rank ? '' : '🔒') + (i === fxTier(s) ? '◆' : '') + n + '</button>').join('');
+  document.getElementById('famchips').innerHTML = '<button class="chip ' + (!s.fam ? 'on' : '') + '" data-a="fam" data-v="">' + s.cat + '特效</button>' + FAMS.map(f => '<button class="chip ' + (s.fam === f ? 'on' : '') + '" data-a="fam" data-v="' + f + '">' + f + '系列</button>').join('');
+  document.getElementById('fxchips').innerHTML = FXNAMES[fxCat(s)].map((n, i) => '<button class="chip ' + (i <= li.rank ? '' : 'lock') + (i === skFx ? ' on' : '') + '" style="color:' + RANK_COLORS[i] + '" data-a="fx" data-v="' + i + '">' + (i <= li.rank ? '' : '🔒') + (i === fxTier(s) ? '◆' : '') + n + '</button>').join('');
 }
 function settingsModal() {
   modal('<h2>設定</h2><div class="row" style="margin-bottom:10px"><span>音效</span><span class="sp"></span><button class="btn alt sm" data-a="toggleSound">' + (S.settings.sound ? '開啟' : '關閉') + '</button></div>' +
@@ -1021,7 +1131,8 @@ const A = {
     save(); closeModal(); if (tab === 'home' || tab === 'train') { selId = S.skills[S.skills.length - 1].id; } render(); toast('新增了 ' + newCat + '．' + n + '之術');
   },
   openSkill(v) { skillModal(v); },
-  fx(v) { const i = +v, s = modalStage.skill, li = levelInfo(s.sec / 3600); if (i > li.rank) { toast('達到 ' + RANKS[i] + ' 級解鎖'); return; } skFx = i; s.fx = i; save(); modalStage.set(s.cat, i, true, lookIdx(), true); drawFxChips(); toast('已裝備「' + FXNAMES[s.cat][i] + '」'); },
+  fx(v) { const i = +v, s = modalStage.skill, li = levelInfo(s.sec / 3600); if (i > li.rank) { toast('達到 ' + RANKS[i] + ' 級解鎖'); return; } skFx = i; s.fx = i; save(); modalStage.set(fxCat(s), i, true, lookIdx(), true); drawFxChips(); toast('已裝備「' + FXNAMES[fxCat(s)][i] + '」'); },
+  fam(v) { const s = modalStage.skill; s.fam = v || null; save(); modalStage.set(fxCat(s), skFx, true, lookIdx(), true); drawFxChips(); toast(v ? '已切換為「' + v + '」特效系列' : '已改回依類別特效'); },
   delSkill(v) { confirmModal('刪除這個技能？已累積的時數會一併消失，修練歷程保留。', 'delSkillYes', '確定刪除', '取消', v); },
   delSkillYes(v) { S.skills = S.skills.filter(s => s.id !== v); save(); closeModal(); render(); },
   closeModal() { closeModal(); },
