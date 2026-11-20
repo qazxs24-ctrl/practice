@@ -118,7 +118,7 @@ textarea{min-height:90px;resize:vertical}
 .galfix .px{margin:6px 0}
 .galscroll{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:12px}
 
-.flowfx{position:fixed;inset:0;pointer-events:none;z-index:4;opacity:0;transition:opacity 1.2s;background:radial-gradient(ellipse at center,rgba(255,50,50,0) 50%,rgba(255,50,50,.18) 75%,rgba(255,40,40,.5) 100%)}
+.flowfx{position:absolute;inset:0;pointer-events:none;z-index:3;opacity:0;transition:opacity 1.2s;background:radial-gradient(ellipse at center,rgba(255,50,50,0) 50%,rgba(255,50,50,.18) 75%,rgba(255,40,40,.5) 100%)}
 .flowfx.on{opacity:1;animation:breathe 4.5s ease-in-out infinite}
 @keyframes breathe{0%,100%{opacity:.2}50%{opacity:1}}
 </style></head><body><div id="app"></div><div id="md"></div>
@@ -950,7 +950,7 @@ function trainView() {
 }
 function runningView() {
   const s = skillById(S.active.skillId), li = levelInfo(s.sec / 3600);
-  return '<div style="padding-top:14px;text-align:center"><div style="font-size:17px;margin:6px 0">' + titleHTML(s, false) + '</div><div class="stagewrap"><canvas id="st" class="stage" data-cfg=\'' + cfgJ({ cat: fxCat(s), tier: fxTier(s), train: 1, ...eqCfg(), bonus: damageBonus(s.sec / 3600), label: skillLabel(s), lcolor: rankColor(s) }) + '\'></canvas></div><div class="timer" id="tm">00:00</div><div class="dim" id="gh"></div><div class="dim" id="fh" style="color:#ff9b97"></div><div class="dim" id="qh"></div><div id="flowfx" class="flowfx"></div><button class="btn gold" data-a="finish">完成修練</button><button class="btn alt sm" data-a="giveup">放棄</button><div class="dim" style="margin-top:8px">可以先去其他頁面看看，計時不會停止</div></div>';
+  return '<div style="padding-top:14px;text-align:center"><div style="font-size:17px;margin:6px 0">' + titleHTML(s, false) + '</div><div class="stagewrap"><canvas id="st" class="stage" data-cfg=\'' + cfgJ({ cat: fxCat(s), tier: fxTier(s), train: 1, ...eqCfg(), bonus: damageBonus(s.sec / 3600), label: skillLabel(s), lcolor: rankColor(s) }) + '\'></canvas><div id="flowfx" class="flowfx"></div></div><div class="timer" id="tm">00:00</div><div class="dim" id="gh"></div><div class="dim" id="fh" style="color:#ff9b97"></div><div class="dim" id="qh"></div><button class="btn gold" data-a="finish">完成修練</button><button class="btn alt sm" data-a="giveup">放棄</button><div class="dim" style="margin-top:8px">可以先去其他頁面看看，計時不會停止</div></div>';
 }
 function pendingView() {
   const p = S.pending, s = skillById(p.skillId);
