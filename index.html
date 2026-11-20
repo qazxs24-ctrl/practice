@@ -539,12 +539,12 @@ class Stage {
     else if (tier === 4) {
       sc.poses.push([0.2, 0.6, 'cast']);
       const ax = [88.1, 83.6, 78.6, 74.5], ty = [54, 60, 66, 72];
-      ax.forEach((x, i) => { const sx = i % 2 ? 54.5 : 33.5, t0 = 0.5 + i * 0.2; sc.ks.push({ legs: [leg(0.2, 0.5, sx, 47, x, 22.7, false), leg(t0, t0 + 0.1, x, 22.7, TX, ty[i], true, { hit: 1 })] }); });
+      ax.forEach((x, i) => { const sx = 44, t0 = 0.5 + i * 0.2; sc.ks.push({ legs: [leg(0.2, 0.5, sx, 46, x, 22.7, false), leg(t0, t0 + 0.1, x, 22.7, TX, ty[i], true, { hit: 1 })] }); });
     } else {
       sc.poses = [[0, 0.2, 'cross'], [0.2, 0.5, 'cast']];
       for (let i = 0; i < 10; i++) {
-        const x = 31 + i * 26 / 9, g = i >> 1, t0 = 0.7 + g * 0.1, ty = 48 + (i * 7) % 28, tx = 113 + (i % 3) * 3, sx = tx - 0.4 * (ty + 8);
-        sc.ks.push({ legs: [leg(0.2, 0.4, x, 47, x, -8, false, { vanish: 1 }), leg(t0, t0 + 0.2, sx, -8, tx, ty, true, { hit: (i & 1) ? 0 : 1 })] });
+        const x = 31 + i * 26 / 9, t0 = 0.7 + i * 0.07, ty = 48 + (i * 7) % 28, tx = 113 + (i % 3) * 3, sx = tx - 0.4 * (ty + 8);
+        sc.ks.push({ legs: [leg(0.2, 0.4, x, 47, x, -8, false, { vanish: 1 }), leg(t0, t0 + 0.2, sx, -8, tx, ty, true, { hit: 1 })] });
       }
     }
     sc.ks.forEach(k => k.legs.forEach(l => { sc.dur = Math.max(sc.dur, l.t1); }));
@@ -577,7 +577,7 @@ class Stage {
     Sfx.stab(); this.dshake = 0.3;
     for (let i = 0; i < 5; i++) this.P(l.x1, l.y1, (R() - 0.3) * 50, (R() - 0.8) * 40, 0.35, '#ffffff', 1, 90);
     const n = this.dmgs.length;
-    this.dmgs.push({ x: 100 + (n % 3) * 8, y: 44 - (n % 3) * 5, v: Math.round((40 + R() * 30) * (this.bonus || 1) * (1 + tier * 0.35)), life: 0.9 });
+    this.dmgs.push({ x: 96 + (n % 5) * 7, y: 48 - (n % 5) * 5, v: Math.round((40 + R() * 30) * (this.bonus || 1) * (1 + tier * 0.35)), life: 0.7 });
   }
   kunaiDraw(dt) {
     const x = this.x;
