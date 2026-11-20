@@ -83,6 +83,8 @@ textarea{min-height:90px;resize:vertical}
 .warn{color:#ffb3b0}
 .runbar{margin:10px 0;padding:10px 12px;background:#3a1220;box-shadow:0 0 0 3px var(--shadow),inset 0 0 0 2px var(--red);cursor:pointer}
 .runbar b{font-size:20px;font-weight:normal;color:#fff}
+.runbar.flow{animation:rbreathe 4.5s ease-in-out infinite}
+@keyframes rbreathe{0%,100%{box-shadow:0 0 0 3px var(--shadow),inset 0 0 0 2px var(--red),inset 0 0 4px 0 rgba(255,50,50,.1),0 0 0 0 rgba(255,50,50,0)}50%{box-shadow:0 0 0 3px var(--shadow),inset 0 0 0 2px #ff5a5a,inset 0 0 22px 4px rgba(255,50,50,.75),0 0 16px 3px rgba(255,50,50,.6)}}
 .runbar .blink{color:var(--red);animation:blink 1s steps(2) infinite}
 .sa{padding-top:calc(12px + env(safe-area-inset-top))}
 .modal{padding-top:calc(18px + env(safe-area-inset-top))}
@@ -135,7 +137,7 @@ const DAY_START_HOUR = 5;
 const QUALIFY_SEC = 5 * 60, FLOW_SEC = 15 * 60;
 const goalMin = () => (S.settings && S.settings.goal) || 30;
 const goalText = m => (m >= 60 ? Math.floor(m / 60) + ' 小時' : '') + (m % 60 ? (m >= 60 ? ' ' : '') + (m % 60) + ' 分鐘' : (m >= 60 ? '' : '0 分鐘'));
-const flowCount = () => S.sessions.filter(x => x.sec >= FLOW_SEC).length;
+const flowCount = () => S.sessions.filter(x => x.flow && !x.sim).length;
 const QUEST_SEC = 15 * 60;
 const QUEST_GEMS = 3;
 
@@ -893,10 +895,12 @@ function tick() {
   const hint = document.getElementById('qh'); if (hint) hint.textContent = sec >= QUALIFY_SEC ? '✔ 今日修練已達成（連續天數延續）' : '再修練 ' + fmtDur(QUALIFY_SEC - sec) + ' 即可延續連續天數';
   const g = (S.active.goal || goalMin()) * 60;
   const gh = document.getElementById('gh'); if (gh) gh.textContent = sec < g ? '預設 ' + goalText(g / 60) + '　還剩 ' + fmtDur(g - sec) : '已超過預設時間 +' + fmtDur(sec - g) + '（經驗照算）';
-  const fh = document.getElementById('fh'); if (fh) fh.textContent = sec >= FLOW_SEC ? '心流狀態' : '再 ' + fmtDur(FLOW_SEC - sec) + ' 進入心流';
-  const ff = document.getElementById('flowfx'); if (ff) ff.classList.toggle('on', sec >= FLOW_SEC);
+  const fl = sec >= g + FLOW_SEC;
+  const fh = document.getElementById('fh'); if (fh) fh.textContent = fl ? '心流狀態' : '再 ' + fmtDur(g + FLOW_SEC - sec) + ' 進入心流（超過預設時間 15 分鐘）';
+  const ff = document.getElementById('flowfx'); if (ff) ff.classList.toggle('on', fl);
+  document.querySelectorAll('.runbar').forEach(e => e.classList.toggle('flow', fl));
   if (sec >= g && !S.active.notified) { S.active.notified = 1; save(); Sfx.alert(); toast('已達預設修練時間 ' + goalText(g / 60) + '，可繼續修練，經驗照算'); }
-  if (sec >= FLOW_SEC && !S.active.flowed) { S.active.flowed = 1; save(); Sfx.flow(); toast('進入心流狀態'); }
+  if (fl && !S.active.flowed) { S.active.flowed = 1; save(); Sfx.flow(); toast('進入心流狀態'); }
   document.title = '⏱ ' + fmtDur(sec) + '　練習';
 }
 
@@ -940,7 +944,7 @@ function trainView() {
   let h = '<div class="stagewrap"><canvas id="st" class="stage" data-cfg=\'' + cfgJ({ cat: fxCat(sel), tier: fxTier(sel), tap: 1, train: 1, once: 1, ...eqCfg(), bonus: damageBonus(sel.sec / 3600), label: skillLabel(sel), lcolor: rankColor(sel) }) + '\'></canvas></div><h3 style="color:var(--gold);font-weight:normal;margin:6px 0">選擇要修練的術</h3>';
   for (const s of S.skills) h += '<button class="skill ' + (s.id === selId ? 'sel' : '') + '" data-a="selSkill" data-v="' + s.id + '"><div class="nm" style="margin:0">' + titleHTML(s, false) + '</div></button>';
   const gm = goalMin();
-  h += '<div class="px"><h3>預設時間</h3><div class="row"><button class="btn alt sm" data-a="goalH" data-v="-1">−</button><b style="min-width:64px;text-align:center">' + Math.floor(gm / 60) + ' 小時</b><button class="btn alt sm" data-a="goalH" data-v="1">＋</button><span class="sp"></span><button class="btn alt sm" data-a="goalM" data-v="-15">−</button><b style="min-width:64px;text-align:center">' + (gm % 60) + ' 分</b><button class="btn alt sm" data-a="goalM" data-v="15">＋</button></div><div class="dim" style="font-size:13px;margin-top:6px">時間到會提醒（目前只在打開 app 時）。不影響計時，經驗值照算；單次修練滿 15 分鐘進入心流狀態。</div></div>' +
+  h += '<div class="px"><h3>預設時間</h3><div class="row"><button class="btn alt sm" data-a="goalH" data-v="-1">−</button><b style="min-width:64px;text-align:center">' + Math.floor(gm / 60) + ' 小時</b><button class="btn alt sm" data-a="goalH" data-v="1">＋</button><span class="sp"></span><button class="btn alt sm" data-a="goalM" data-v="-15">−</button><b style="min-width:64px;text-align:center">' + (gm % 60) + ' 分</b><button class="btn alt sm" data-a="goalM" data-v="15">＋</button></div><div class="dim" style="font-size:13px;margin-top:6px">時間到會提醒（目前只在打開 app 時）。不影響計時，經驗值照算；超過預設時間 15 分鐘進入心流狀態。</div></div>' +
     '<button class="btn" data-a="startTrain">開始修練</button><div class="dim" style="text-align:center">計時以實際時間為準，切換頁面或鎖屏也不會停止</div>';
   return h;
 }
@@ -974,7 +978,7 @@ function logView() {
   if (!list.length) h += '<div class="empty">還沒有修練紀錄</div>';
   for (const s of list) {
     const sk = skillById(s.skillId), d = new Date(s.end);
-    h += '<div class="log"><div class="dim">' + (d.getMonth() + 1) + '/' + d.getDate() + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + '　' + Math.max(1, Math.round(s.sec / 60)) + ' 分鐘' + (s.sec >= FLOW_SEC ? '　<span style="color:#ff9b97">心流</span>' : '') + '</div><div>' + (sk ? titleHTML(sk, false) : '（已刪除的技能）') + '</div>' + (s.note ? '<div style="font-size:14px;margin-top:3px;white-space:pre-wrap">' + esc(s.note) + '</div>' : '') + (s.photo ? '<img data-a="bigPhoto" data-v="' + s.photo + '" data-pid="' + s.photo + '" src="' + (getPhoto(s.photo) || '') + '" alt="">' : '') + '</div>';
+    h += '<div class="log"><div class="dim">' + (d.getMonth() + 1) + '/' + d.getDate() + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + '　' + Math.max(1, Math.round(s.sec / 60)) + ' 分鐘' + (s.flow ? '　<span style="color:#ff9b97">心流</span>' : '') + '</div><div>' + (sk ? titleHTML(sk, false) : '（已刪除的技能）') + '</div>' + (s.note ? '<div style="font-size:14px;margin-top:3px;white-space:pre-wrap">' + esc(s.note) + '</div>' : '') + (s.photo ? '<img data-a="bigPhoto" data-v="' + s.photo + '" data-pid="' + s.photo + '" src="' + (getPhoto(s.photo) || '') + '" alt="">' : '') + '</div>';
   }
   return h + '</div>';
 }
@@ -1160,7 +1164,7 @@ const A = {
   finish() {
     const sec = Math.floor((Date.now() - S.active.start) / 1000);
     if (sec < QUALIFY_SEC) { modal('<h2>時間太短</h2><div style="margin:8px 0 14px">修練不滿 5 分鐘，不會獲得經驗值，也不會被記錄。</div><button class="btn" data-a="closeModal">繼續修練</button><button class="btn alt" data-a="giveupYes">放棄這次</button>'); return; }
-    S.pending = { skillId: S.active.skillId, start: S.active.start, end: nowTs(), sec }; S.active = null; pendingPhoto = null; save(); render();
+    S.pending = { skillId: S.active.skillId, start: S.active.start, end: nowTs(), sec, flow: sec >= (S.active.goal || goalMin()) * 60 + FLOW_SEC ? 1 : 0 }; S.active = null; pendingPhoto = null; save(); render();
   },
   giveup() { confirmModal('放棄這次修練？時間不會被記錄。', 'giveupYes', '放棄', '繼續修練'); },
   giveupYes() { S.active = null; save(); closeModal(); tab = 'train'; render(); },
@@ -1168,7 +1172,7 @@ const A = {
     const p = S.pending; if (!p) return;
     const note = (document.getElementById('note') || {}).value || '';
     let pid = null; if (pendingPhoto) { pid = 'p' + p.end.toString(36); savePhoto(pid, pendingPhoto); }
-    const r = addSession(S, p.skillId, p.sec, p.start, p.end, note.trim(), pid);
+    const r = addSession(S, p.skillId, p.sec, p.start, p.end, note.trim(), pid); if (p.flow) r.session.flow = 1;
     S.pending = null; pendingPhoto = null; lastResult = r; save(); render();
     setTimeout(() => { const b = document.getElementById('rbar'); if (b) b.style.width = (r.after.progress * 100) + '%'; }, 100);
     breakthroughs(r);
