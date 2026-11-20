@@ -115,6 +115,10 @@ textarea{min-height:90px;resize:vertical}
 .galfix .stage{width:auto;max-width:100%;max-height:30vh;margin:0 auto}
 .galfix .px{margin:6px 0}
 .galscroll{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:12px}
+
+.flowfx{position:fixed;inset:0;pointer-events:none;z-index:4;opacity:0;transition:opacity 1.2s;background:radial-gradient(ellipse at center,rgba(255,50,50,0) 50%,rgba(255,50,50,.18) 75%,rgba(255,40,40,.5) 100%)}
+.flowfx.on{opacity:1;animation:breathe 4.5s ease-in-out infinite}
+@keyframes breathe{0%,100%{opacity:.2}50%{opacity:1}}
 </style></head><body><div id="app"></div><div id="md"></div>
 <script>/* ===== 練習 · 純邏輯 (可在 node 測試) ===== */
 const RANKS = ['D', 'C', 'B', 'A', 'S', 'SS'];
@@ -128,7 +132,10 @@ const CATS = {
 const NINJA_RANKS = ['入門忍者', '下忍', '中忍', '上忍'];
 const MAX_HOURS = 1000;
 const DAY_START_HOUR = 5;
-const QUALIFY_SEC = 5 * 60;
+const QUALIFY_SEC = 5 * 60, FLOW_SEC = 15 * 60;
+const goalMin = () => (S.settings && S.settings.goal) || 30;
+const goalText = m => (m >= 60 ? Math.floor(m / 60) + ' 小時' : '') + (m % 60 ? (m >= 60 ? ' ' : '') + (m % 60) + ' 分鐘' : (m >= 60 ? '' : '0 分鐘'));
+const flowCount = () => S.sessions.filter(x => x.sec >= FLOW_SEC).length;
 const QUEST_SEC = 15 * 60;
 const QUEST_GEMS = 3;
 
@@ -707,6 +714,8 @@ const Sfx = {
   init() { if (!this.ctx) { try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { } } if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); },
   tone(f, d, type, v, when) { if (!this.on || !this.ctx) return; const c = this.ctx, t = c.currentTime + (when || 0), o = c.createOscillator(), g = c.createGain(); o.type = type || 'square'; o.frequency.value = f; g.gain.setValueAtTime(v || 0.06, t); g.gain.exponentialRampToValueAtTime(0.0001, t + d); o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + d + 0.02); },
   tap() { this.tone(660, 0.05); },
+  alert() { [880, 1175, 880, 1175].forEach((f, i) => this.tone(f, 0.12, 'triangle', 0.07, i * 0.14)); },
+  flow() { [523, 659, 784, 1047].forEach((f, i) => this.tone(f, 0.2, 'sine', 0.07, i * 0.1)); },
   stab() {
     if (!this.on || !this.ctx) return; const c = this.ctx, t = c.currentTime, n = Math.floor(c.sampleRate * 0.14), buf = c.createBuffer(1, n, c.sampleRate), d = buf.getChannelData(0);
     for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 2.2);
@@ -882,6 +891,12 @@ function tick() {
   const el = document.getElementById('tm'); if (el) el.textContent = fmtDur(sec);
   document.querySelectorAll('.runtm').forEach(e => e.textContent = fmtDur(sec));
   const hint = document.getElementById('qh'); if (hint) hint.textContent = sec >= QUALIFY_SEC ? '✔ 今日修練已達成（連續天數延續）' : '再修練 ' + fmtDur(QUALIFY_SEC - sec) + ' 即可延續連續天數';
+  const g = (S.active.goal || goalMin()) * 60;
+  const gh = document.getElementById('gh'); if (gh) gh.textContent = sec < g ? '預設 ' + goalText(g / 60) + '　還剩 ' + fmtDur(g - sec) : '已超過預設時間 +' + fmtDur(sec - g) + '（經驗照算）';
+  const fh = document.getElementById('fh'); if (fh) fh.textContent = sec >= FLOW_SEC ? '心流狀態' : '再 ' + fmtDur(FLOW_SEC - sec) + ' 進入心流';
+  const ff = document.getElementById('flowfx'); if (ff) ff.classList.toggle('on', sec >= FLOW_SEC);
+  if (sec >= g && !S.active.notified) { S.active.notified = 1; save(); Sfx.alert(); toast('已達預設修練時間 ' + goalText(g / 60) + '，可繼續修練，經驗照算'); }
+  if (sec >= FLOW_SEC && !S.active.flowed) { S.active.flowed = 1; save(); Sfx.flow(); toast('進入心流狀態'); }
   document.title = '⏱ ' + fmtDur(sec) + '　練習';
 }
 
@@ -924,12 +939,14 @@ function trainView() {
   const sel = skillById(selId), li = levelInfo(sel.sec / 3600);
   let h = '<div class="stagewrap"><canvas id="st" class="stage" data-cfg=\'' + cfgJ({ cat: fxCat(sel), tier: fxTier(sel), tap: 1, train: 1, once: 1, ...eqCfg(), bonus: damageBonus(sel.sec / 3600), label: skillLabel(sel), lcolor: rankColor(sel) }) + '\'></canvas></div><h3 style="color:var(--gold);font-weight:normal;margin:6px 0">選擇要修練的術</h3>';
   for (const s of S.skills) h += '<button class="skill ' + (s.id === selId ? 'sel' : '') + '" data-a="selSkill" data-v="' + s.id + '"><div class="nm" style="margin:0">' + titleHTML(s, false) + '</div></button>';
-  h += '<button class="btn" data-a="startTrain">開始修練</button><div class="dim" style="text-align:center">計時以實際時間為準，切換頁面或鎖屏也不會停止</div>';
+  const gm = goalMin();
+  h += '<div class="px"><h3>預設時間</h3><div class="row"><button class="btn alt sm" data-a="goalH" data-v="-1">−</button><b style="min-width:64px;text-align:center">' + Math.floor(gm / 60) + ' 小時</b><button class="btn alt sm" data-a="goalH" data-v="1">＋</button><span class="sp"></span><button class="btn alt sm" data-a="goalM" data-v="-15">−</button><b style="min-width:64px;text-align:center">' + (gm % 60) + ' 分</b><button class="btn alt sm" data-a="goalM" data-v="15">＋</button></div><div class="dim" style="font-size:13px;margin-top:6px">時間到會提醒（目前只在打開 app 時）。不影響計時，經驗值照算；單次修練滿 15 分鐘進入心流狀態。</div></div>' +
+    '<button class="btn" data-a="startTrain">開始修練</button><div class="dim" style="text-align:center">計時以實際時間為準，切換頁面或鎖屏也不會停止</div>';
   return h;
 }
 function runningView() {
   const s = skillById(S.active.skillId), li = levelInfo(s.sec / 3600);
-  return '<div style="padding-top:14px;text-align:center"><div style="font-size:17px;margin:6px 0">' + titleHTML(s, false) + '</div><div class="stagewrap"><canvas id="st" class="stage" data-cfg=\'' + cfgJ({ cat: fxCat(s), tier: fxTier(s), train: 1, ...eqCfg(), bonus: damageBonus(s.sec / 3600), label: skillLabel(s), lcolor: rankColor(s) }) + '\'></canvas></div><div class="timer" id="tm">00:00</div><div class="dim" id="qh"></div><button class="btn gold" data-a="finish">完成修練</button><button class="btn alt sm" data-a="giveup">放棄</button><div class="dim" style="margin-top:8px">可以先去其他頁面看看，計時不會停止</div></div>';
+  return '<div style="padding-top:14px;text-align:center"><div style="font-size:17px;margin:6px 0">' + titleHTML(s, false) + '</div><div class="stagewrap"><canvas id="st" class="stage" data-cfg=\'' + cfgJ({ cat: fxCat(s), tier: fxTier(s), train: 1, ...eqCfg(), bonus: damageBonus(s.sec / 3600), label: skillLabel(s), lcolor: rankColor(s) }) + '\'></canvas></div><div class="timer" id="tm">00:00</div><div class="dim" id="gh"></div><div class="dim" id="fh" style="color:#ff9b97"></div><div class="dim" id="qh"></div><div id="flowfx" class="flowfx"></div><button class="btn gold" data-a="finish">完成修練</button><button class="btn alt sm" data-a="giveup">放棄</button><div class="dim" style="margin-top:8px">可以先去其他頁面看看，計時不會停止</div></div>';
 }
 function pendingView() {
   const p = S.pending, s = skillById(p.skillId);
@@ -947,7 +964,7 @@ function resultView() {
 }
 function logView() {
   const st = stats();
-  let h = '<button class="btn alt sm" data-a="backHome" style="margin-top:12px">← 返回道場</button>' + '<div class="px"><h3>修練紀錄</h3><div class="grid3" style="grid-template-columns:repeat(4,1fr)"><div class="stat"><b>' + st.days + '</b><span>累積天</span></div><div class="stat"><b>' + st.streak + '</b><span>連續</span></div><div class="stat"><b>' + st.best + '</b><span>最長</span></div><div class="stat"><b>' + fmtHours(st.totalSec) + '</b><span>小時</span></div></div></div>';
+  let h = '<button class="btn alt sm" data-a="backHome" style="margin-top:12px">← 返回道場</button>' + '<div class="px"><h3>修練紀錄</h3><div class="grid3" style="grid-template-columns:repeat(5,1fr)"><div class="stat"><b>' + st.days + '</b><span>累積天</span></div><div class="stat"><b>' + st.streak + '</b><span>連續</span></div><div class="stat"><b>' + st.best + '</b><span>最長</span></div><div class="stat"><b>' + fmtHours(st.totalSec) + '</b><span>小時</span></div><div class="stat"><b>' + flowCount() + '</b><span>心流</span></div></div></div>';
   h += '<div class="px"><h3>近 7 日修練時間</h3>' + weekChart(st) + '</div>';
   const hrs = st.totalSec / 3600, cl = S.claimed || {};
   const ms = (arr, pre, val, unit) => arr.map(([n, g]) => '<div class="ms ' + (val >= n ? 'ok' : '') + '"><span>' + (val >= n ? '✔ ' : '') + (pre === 'hour' ? '累積 ' + n + ' 小時' : pre === 'streak' ? '連續 ' + n + ' 天' : '累積 ' + n + ' 天') + '</span><span>' + g + ' 勾玉</span></div>').join('');
@@ -957,7 +974,7 @@ function logView() {
   if (!list.length) h += '<div class="empty">還沒有修練紀錄</div>';
   for (const s of list) {
     const sk = skillById(s.skillId), d = new Date(s.end);
-    h += '<div class="log"><div class="dim">' + (d.getMonth() + 1) + '/' + d.getDate() + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + '　' + Math.max(1, Math.round(s.sec / 60)) + ' 分鐘</div><div>' + (sk ? titleHTML(sk, false) : '（已刪除的技能）') + '</div>' + (s.note ? '<div style="font-size:14px;margin-top:3px;white-space:pre-wrap">' + esc(s.note) + '</div>' : '') + (s.photo ? '<img data-a="bigPhoto" data-v="' + s.photo + '" data-pid="' + s.photo + '" src="' + (getPhoto(s.photo) || '') + '" alt="">' : '') + '</div>';
+    h += '<div class="log"><div class="dim">' + (d.getMonth() + 1) + '/' + d.getDate() + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + '　' + Math.max(1, Math.round(s.sec / 60)) + ' 分鐘' + (s.sec >= FLOW_SEC ? '　<span style="color:#ff9b97">心流</span>' : '') + '</div><div>' + (sk ? titleHTML(sk, false) : '（已刪除的技能）') + '</div>' + (s.note ? '<div style="font-size:14px;margin-top:3px;white-space:pre-wrap">' + esc(s.note) + '</div>' : '') + (s.photo ? '<img data-a="bigPhoto" data-v="' + s.photo + '" data-pid="' + s.photo + '" src="' + (getPhoto(s.photo) || '') + '" alt="">' : '') + '</div>';
   }
   return h + '</div>';
 }
@@ -1137,10 +1154,12 @@ const A = {
   delSkillYes(v) { S.skills = S.skills.filter(s => s.id !== v); save(); closeModal(); render(); },
   closeModal() { closeModal(); },
   selSkill(v) { selId = v; render(); },
-  startTrain() { Sfx.init(); Sfx.start(); S.active = { skillId: selId, start: Date.now() }; tab = 'train'; save(); render(); },
+  goalH(v) { const g = goalMin(); let t = (Math.floor(g / 60) + (+v)) * 60 + g % 60; t = Math.max(15, Math.min(720, t)); S.settings.goal = t; save(); render(); },
+  goalM(v) { const g = goalMin(), h = Math.floor(g / 60); let m = ((g % 60) + (+v) + 60) % 60, t = h * 60 + m; t = Math.max(15, Math.min(720, t)); S.settings.goal = t; save(); render(); },
+  startTrain() { Sfx.init(); Sfx.start(); S.active = { skillId: selId, start: Date.now(), goal: goalMin() }; tab = 'train'; save(); render(); },
   finish() {
     const sec = Math.floor((Date.now() - S.active.start) / 1000);
-    if (sec < 60) { modal('<h2>時間太短</h2><div style="margin:8px 0 14px">修練不滿 1 分鐘，不會被記錄。</div><button class="btn" data-a="closeModal">繼續修練</button><button class="btn alt" data-a="giveupYes">放棄這次</button>'); return; }
+    if (sec < QUALIFY_SEC) { modal('<h2>時間太短</h2><div style="margin:8px 0 14px">修練不滿 5 分鐘，不會獲得經驗值，也不會被記錄。</div><button class="btn" data-a="closeModal">繼續修練</button><button class="btn alt" data-a="giveupYes">放棄這次</button>'); return; }
     S.pending = { skillId: S.active.skillId, start: S.active.start, end: nowTs(), sec }; S.active = null; pendingPhoto = null; save(); render();
   },
   giveup() { confirmModal('放棄這次修練？時間不會被記錄。', 'giveupYes', '放棄', '繼續修練'); },
