@@ -54,6 +54,11 @@ textarea{min-height:90px;resize:vertical}
 .chip{padding:4px 10px;background:#0a0d26;box-shadow:inset 0 0 0 2px var(--ln);font-size:13px}
 .chip.on{background:var(--p2);box-shadow:inset 0 0 0 2px currentColor}
 .chip.lock{opacity:.45}
+.fset{margin:10px 0;padding:10px;background:#0a0d26;box-shadow:inset 0 0 0 2px var(--ln)}
+.fset.off{opacity:.4;pointer-events:none}
+.fset h4{margin:0 0 6px;font-weight:normal;color:var(--gold);font-size:14px}
+input[type=time]{background:#0a0d26;color:var(--ink);border:0;box-shadow:inset 0 0 0 2px var(--ln);padding:8px;font:inherit;border-radius:0}
+.diffs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0}
 .timer{font-size:56px;text-align:center;letter-spacing:3px;margin:6px 0;text-shadow:0 4px 0 #000a}
 .heat{display:grid;grid-template-rows:repeat(7,1fr);grid-auto-flow:column;gap:3px}
 .heat i{aspect-ratio:1;background:#12163a;display:block}
@@ -137,6 +142,10 @@ const DAY_START_HOUR = 5;
 const QUALIFY_SEC = 5 * 60, FLOW_SEC = 15 * 60;
 const goalMin = () => (S.settings && S.settings.goal) || 30;
 const goalText = m => (m >= 60 ? Math.floor(m / 60) + ' 小時' : '') + (m % 60 ? (m >= 60 ? ' ' : '') + (m % 60) + ' 分鐘' : (m >= 60 ? '' : '0 分鐘'));
+const stepH = (g, v) => Math.max(15, Math.min(720, (Math.floor(g / 60) + v) * 60 + g % 60));
+const stepM = (g, v) => { const h = Math.floor(g / 60); return Math.max(15, Math.min(720, h * 60 + ((g % 60) + v + 60) % 60)); };
+let tGoal = null, tGoalFor = null;
+function curGoal() { const s = skillById(selId); if (tGoalFor !== selId) { tGoalFor = selId; tGoal = (s && s.goal) || goalMin(); } return tGoal; }
 const flowCount = () => S.sessions.filter(x => x.flow && !x.sim).length;
 const QUEST_SEC = 15 * 60;
 const QUEST_GEMS = 3;
@@ -159,18 +168,50 @@ function levelInfo(hours) {
   const into = isMax ? 0 : h - start;
   return { idx, rank, rankName: RANKS[rank], lv, isMax, start, need, into, progress: isMax ? 1 : into / need, color: RANK_COLORS[rank] };
 }
+const DIFF = {
+  easy: { name: '簡單', caps: [15, 20], mult: 1.5, pow: [0.7, 0.775, 0.85], scroll: 'scrollE' },
+  mid: { name: '中等', caps: [20], mult: 1.25, pow: [0.85, 0.925], scroll: 'scrollM' },
+  hard: { name: '困難', caps: [], mult: 1, pow: [1], scroll: null },
+};
+const SCROLLS = { scrollE: { name: '簡單技能突破卷軸', color: '#4fa8ff', price: 500 }, scrollM: { name: '中等技能突破卷軸', color: '#b878ff', price: 1500 } };
+const skDiff = s => DIFF[s.diff] || DIFF.hard;
+const skXp = s => (s.xp === undefined || s.xp === null) ? s.sec : s.xp;
+function lvTable(s) {
+  const d = skDiff(s), brk = s.brk || 0, first = d.caps.length ? d.caps[0] : 30, st = [], per = [];
+  let t = 0;
+  for (let i = 0; i < 30; i++) { st.push(t); per.push(HOURS_PER_LV[Math.floor(i / 5)] * (i >= first ? d.mult : 1)); t += per[i]; }
+  return { st, per, cap: brk < d.caps.length ? d.caps[brk] : 29 };
+}
+const capSec = s => { const T = lvTable(s); return T.st[T.cap] * 3600; };
+// 技能等級（依難度、突破次數；cap 時停在該級並標示 capped）
+function skLv(s) {
+  const T = lvTable(s), h = Math.min(Math.max(skXp(s) / 3600, 0), T.st[T.cap]);
+  let idx = 0;
+  for (let i = 0; i <= T.cap; i++) if (h >= T.st[i] - 1e-9) idx = i;
+  const rank = Math.floor(idx / 5), isMax = idx === 29, capped = !isMax && idx === T.cap;
+  const need = (isMax || capped) ? 0 : T.per[idx], into = (isMax || capped) ? 0 : h - T.st[idx];
+  return { idx, rank, rankName: RANKS[rank], lv: (idx % 5) + 1, isMax, capped, start: T.st[idx], need, into, progress: (isMax || capped) ? 1 : into / need, color: RANK_COLORS[rank], h };
+}
+// 傷害：換算成困難的等效時數，再乘上難度強度
+function skDmg(s) {
+  const T = lvTable(s), li = skLv(s), d = skDiff(s);
+  const frac = li.isMax || li.capped ? 0 : (li.h - T.st[li.idx]) / T.per[li.idx];
+  const eq = LEVEL_STARTS[li.idx] + frac * HOURS_PER_LV[li.rank];
+  return damageBonus(eq) * d.pow[Math.min(s.brk || 0, d.pow.length - 1)];
+}
+const lvNote = li => li.isMax ? '已達最高境界' : li.capped ? '已滿等，突破後才能繼續升級' : '下一級還需 ' + (li.need - li.into).toFixed(1) + ' 小時';
 function damageBonus(hours) { return 1 + 0.0018 * Math.min(Math.max(hours, 0), MAX_HOURS); }
 function ninjaRankIndex(skills) {
   let best = 0;
   for (const s of skills) {
-    const r = levelInfo(s.sec / 3600).rank;
+    const r = skLv(s).rank;
     const n = r >= 3 ? 3 : r >= 2 ? 2 : r >= 1 ? 1 : 0;
     if (n > best) best = n;
   }
   return best;
 }
 function skillTitle(s, withRank) {
-  const li = levelInfo(s.sec / 3600);
+  const li = skLv(s);
   return (withRank ? li.rankName + '　' : '') + s.cat + '．' + s.name + '之術（Lv.' + li.lv + '）';
 }
 
@@ -247,14 +288,14 @@ function fmtHours(sec) { const h = sec / 3600; return h >= 100 ? h.toFixed(0) : 
 // 加入修練後的結果摘要 (升級判定)
 function addSession(state, skillId, sec, startTs, endTs, note, photoId) {
   const sk = state.skills.find(s => s.id === skillId);
-  const before = levelInfo(sk.sec / 3600), nrBefore = ninjaRankIndex(state.skills);
-  sk.sec += sec;
+  const before = skLv(sk), nrBefore = ninjaRankIndex(state.skills);
+  sk.xp = Math.min(skXp(sk) + sec, capSec(sk)); sk.sec += sec;
   const ses = { id: 's' + endTs.toString(36), skillId, start: startTs, end: endTs, sec, note: note || '', photo: photoId || null };
   state.sessions.push(ses);
-  const after = levelInfo(sk.sec / 3600), nrAfter = ninjaRankIndex(state.skills);
+  const after = skLv(sk), nrAfter = ninjaRankIndex(state.skills);
   const rewards = pendingRewards(state, endTs);
   const gems = applyRewards(state, rewards);
-  return { session: ses, before, after, levelUp: after.idx > before.idx, rankUp: after.rank > before.rank, ninjaUp: nrAfter > nrBefore, ninjaRank: nrAfter, rewards, gems };
+  return { session: ses, before, after, levelUp: after.idx > before.idx, rankUp: after.rank > before.rank, ninjaUp: nrAfter > nrBefore, ninjaRank: nrAfter, capHit: after.capped && !before.capped, rewards, gems };
 }
 
 if (false) module.exports = { RANKS, RANK_COLORS, HOURS_PER_LV, LEVEL_STARTS, levelInfo, damageBonus, ninjaRankIndex, dayKey, addDays, computeStats, pendingRewards, applyRewards, addSession, skillTitle, fmtDur, NINJA_RANKS, CATS };
@@ -738,7 +779,7 @@ const FAMS = ['苦無'];
 const FXNAMES = { '苦無': ['苦無', '速射', '連發', '散射', '空落', '天降'], '忍術': ['火花', '火球', '炎輪', '炎陣', '龍炎', '業火'], '幻術': ['幻霧', '幻旋', '分身', '幻陣', '萬象', '天幻'], '體術': ['疾風', '殘影', '衝擊', '疾影', '氣焰', '雷神'] };
 const fxCat = s => (s && s.fam && FXNAMES[s.fam]) ? s.fam : (s ? s.cat : '忍術');
 const $app = document.getElementById('app'), $md = document.getElementById('md');
-function defaultState() { return { v: 1, skills: [], sessions: [], gems: 0, claimed: {}, active: null, pending: null, settings: { sound: true }, updated: 0, owned: { dog: 1, cat: 1 }, equip: { eyes: null, scarf: null, pet: null }, login: { last: '', days: 0 }, first7: {}, bonusGems: 0 }; }
+function defaultState() { return { v: 1, skills: [], sessions: [], gems: 0, claimed: {}, active: null, pending: null, settings: { sound: true }, updated: 0, owned: { dog: 1, cat: 1 }, equip: { eyes: null, scarf: null, pet: null }, login: { last: '', days: 0 }, first7: {}, bonusGems: 0, items: {} }; }
 let S = defaultState();
 const LOOKS = [{ name: '入門忍者', need: '初始外型' }, { name: '下忍', need: '任一術達 C 級' }, { name: '中忍', need: '任一術達 B 級' }, { name: '上忍', need: '任一術達 A 級' }];
 const nowTs = () => Date.now() + (S.timeShift || 0);
@@ -806,7 +847,7 @@ function icon(name) {
 }
 function skillById(id) { return S.skills.find(s => s.id === id); }
 function titleHTML(s, withRank) {
-  const li = levelInfo(s.sec / 3600);
+  const li = skLv(s);
   return '<span style="color:' + li.color + '">' + (withRank ? li.rankName + '　' : '') + esc(s.cat) + '．' + esc(s.name) + '之術（Lv.' + li.lv + '）</span>';
 }
 function bestSkill() { return S.skills.slice().sort((a, b) => b.sec - a.sec)[0] || null; }
@@ -816,8 +857,8 @@ function closeModal() { if (modalStage) { modalStage.stop(); modalStage = null; 
 function stats() { return computeStats(S.sessions, nowTs()); }
 const cfgJ = o => JSON.stringify(o).replace(/&/g, '&amp;').replace(/'/g, '&#39;');
 const skillLabel = s => s.cat + '．' + s.name + '之術';
-const rankColor = s => RANK_COLORS[levelInfo(s.sec / 3600).rank];
-function fxTier(s) { const r = levelInfo(s.sec / 3600).rank; return s.fx === undefined || s.fx === null ? r : Math.min(r, s.fx); }
+const rankColor = s => RANK_COLORS[skLv(s).rank];
+function fxTier(s) { const r = skLv(s).rank; return s.fx === undefined || s.fx === null ? r : Math.min(r, s.fx); }
 function lookIdx() { return ninjaRankIndex(S.skills); }
 const SLOT_NAMES = { eyes: '眼睛', scarf: '領巾', pet: '寵物' };
 const ITEMS = [].concat(EYES.map(e => Object.assign({ slot: 'eyes' }, e)), SCARVES.map(e => Object.assign({ slot: 'scarf' }, e)), PETS.map(e => Object.assign({ slot: 'pet' }, e)));
@@ -929,8 +970,8 @@ function skillsView() {
   let h = '<div class="row" style="margin:12px 0 0"><h3 style="margin:0;color:var(--gold);font-weight:normal">技能</h3><span class="sp"></span><button class="btn sm" data-a="addSkill">＋ 新增技能</button></div>';
   if (!S.skills.length) return h + '<div class="empty">還沒有任何忍術。<br>點右上角新增你的第一個技能。</div>';
   for (const s of S.skills) {
-    const li = levelInfo(s.sec / 3600);
-    h += '<button class="skill" data-a="openSkill" data-v="' + s.id + '"><div class="nm">' + titleHTML(s, true) + '</div><div class="bar" style="--c:' + li.color + '"><i style="width:' + (li.progress * 100) + '%"></i></div><div class="dim" style="margin-top:5px">' + (li.isMax ? '已達最高境界' : '下一級還需 ' + ((li.need - li.into)).toFixed(1) + ' 小時') + '　累積 ' + fmtHours(s.sec) + 'h</div></button>';
+    const li = skLv(s);
+    h += '<button class="skill" data-a="openSkill" data-v="' + s.id + '"><div class="nm">' + titleHTML(s, true) + '</div><div class="bar" style="--c:' + li.color + '"><i style="width:' + (li.progress * 100) + '%"></i></div><div class="dim" style="margin-top:5px">' + lvNote(li) + '　累積 ' + fmtHours(s.sec) + 'h</div></button>';
   }
   return h;
 }
@@ -940,17 +981,17 @@ function trainView() {
   if (lastResult) return resultView();
   if (!S.skills.length) return '<div class="empty" style="padding-top:60px">先到「技能」新增一個忍術，才能開始修練。<button class="btn" data-a="addSkill">新增技能</button></div>';
   if (!selId || !skillById(selId)) selId = (S.sessions.length && skillById(S.sessions[S.sessions.length - 1].skillId)) ? S.sessions[S.sessions.length - 1].skillId : S.skills[0].id;
-  const sel = skillById(selId), li = levelInfo(sel.sec / 3600);
-  let h = '<div class="stagewrap"><canvas id="st" class="stage" data-cfg=\'' + cfgJ({ cat: fxCat(sel), tier: fxTier(sel), tap: 1, train: 1, once: 1, ...eqCfg(), bonus: damageBonus(sel.sec / 3600), label: skillLabel(sel), lcolor: rankColor(sel) }) + '\'></canvas></div><h3 style="color:var(--gold);font-weight:normal;margin:6px 0">選擇要修練的術</h3>';
+  const sel = skillById(selId), li = skLv(sel);
+  let h = '<div class="stagewrap"><canvas id="st" class="stage" data-cfg=\'' + cfgJ({ cat: fxCat(sel), tier: fxTier(sel), tap: 1, train: 1, once: 1, ...eqCfg(), bonus: skDmg(sel), label: skillLabel(sel), lcolor: rankColor(sel) }) + '\'></canvas></div><h3 style="color:var(--gold);font-weight:normal;margin:6px 0">選擇要修練的術</h3>';
   for (const s of S.skills) h += '<button class="skill ' + (s.id === selId ? 'sel' : '') + '" data-a="selSkill" data-v="' + s.id + '"><div class="nm" style="margin:0">' + titleHTML(s, false) + '</div></button>';
-  const gm = goalMin();
+  const gm = curGoal();
   h += '<div class="px"><h3>預設時間</h3><div class="row"><button class="btn alt sm" data-a="goalH" data-v="-1">−</button><b style="min-width:64px;text-align:center">' + Math.floor(gm / 60) + ' 小時</b><button class="btn alt sm" data-a="goalH" data-v="1">＋</button><span class="sp"></span><button class="btn alt sm" data-a="goalM" data-v="-15">−</button><b style="min-width:64px;text-align:center">' + (gm % 60) + ' 分</b><button class="btn alt sm" data-a="goalM" data-v="15">＋</button></div><div class="dim" style="font-size:13px;margin-top:6px">時間到會提醒（目前只在打開 app 時）。不影響計時，經驗值照算；超過預設時間 15 分鐘進入心流狀態。</div></div>' +
     '<button class="btn" data-a="startTrain">開始修練</button><div class="dim" style="text-align:center">計時以實際時間為準，切換頁面或鎖屏也不會停止</div>';
   return h;
 }
 function runningView() {
-  const s = skillById(S.active.skillId), li = levelInfo(s.sec / 3600);
-  return '<div style="padding-top:14px;text-align:center"><div style="font-size:17px;margin:6px 0">' + titleHTML(s, false) + '</div><div class="stagewrap"><canvas id="st" class="stage" data-cfg=\'' + cfgJ({ cat: fxCat(s), tier: fxTier(s), train: 1, ...eqCfg(), bonus: damageBonus(s.sec / 3600), label: skillLabel(s), lcolor: rankColor(s) }) + '\'></canvas><div id="flowfx" class="flowfx"></div></div><div class="timer" id="tm">00:00</div><div class="dim" id="gh"></div><div class="dim" id="fh" style="color:#ffeeb0"></div><div class="dim" id="qh"></div><button class="btn gold" data-a="finish">完成修練</button><button class="btn alt sm" data-a="giveup">放棄</button><div class="dim" style="margin-top:8px">可以先去其他頁面看看，計時不會停止</div></div>';
+  const s = skillById(S.active.skillId), li = skLv(s);
+  return '<div style="padding-top:14px;text-align:center"><div style="font-size:17px;margin:6px 0">' + titleHTML(s, false) + '</div><div class="stagewrap"><canvas id="st" class="stage" data-cfg=\'' + cfgJ({ cat: fxCat(s), tier: fxTier(s), train: 1, ...eqCfg(), bonus: skDmg(s), label: skillLabel(s), lcolor: rankColor(s) }) + '\'></canvas><div id="flowfx" class="flowfx"></div></div><div class="timer" id="tm">00:00</div><div class="dim" id="gh"></div><div class="dim" id="fh" style="color:#ffeeb0"></div><div class="dim" id="qh"></div><button class="btn gold" data-a="finish">完成修練</button><button class="btn alt sm" data-a="giveup">放棄</button><div class="dim" style="margin-top:8px">可以先去其他頁面看看，計時不會停止</div></div>';
 }
 function pendingView() {
   const p = S.pending, s = skillById(p.skillId);
@@ -960,10 +1001,10 @@ function pendingView() {
 }
 function resultView() {
   const r = lastResult, s = skillById(r.session.skillId), li = r.after;
-  let h = '<div style="padding-top:16px"><div class="px" style="text-align:center"><h3>本次修練</h3><div style="font-size:17px">' + titleHTML(s, true) + '</div><div style="font-size:34px;margin:8px 0">+' + (r.session.sec / 60).toFixed(r.session.sec >= 3600 ? 0 : 1) + ' 分</div><div class="bar" style="--c:' + li.color + '"><i id="rbar" style="width:' + ((r.levelUp ? 0 : r.before.progress) * 100) + '%"></i></div><div class="dim" style="margin-top:6px">' + (li.isMax ? '已達最高境界' : '距離下一級還有 ' + (li.need - li.into).toFixed(1) + ' 小時') + '</div></div>';
+  let h = '<div style="padding-top:16px"><div class="px" style="text-align:center"><h3>本次修練</h3><div style="font-size:17px">' + titleHTML(s, true) + '</div><div style="font-size:34px;margin:8px 0">+' + (r.session.sec / 60).toFixed(r.session.sec >= 3600 ? 0 : 1) + ' 分</div><div class="bar" style="--c:' + li.color + '"><i id="rbar" style="width:' + ((r.levelUp ? 0 : r.before.progress) * 100) + '%"></i></div><div class="dim" style="margin-top:6px">' + lvNote(li) + '</div></div>';
   if (r.rewards.length) h += '<div class="px"><h3>獲得勾玉 +' + r.gems + '</h3>' + r.rewards.map(x => '<div class="ms ok"><span>' + esc(x.label) + '</span><span>+' + x.gems + '</span></div>').join('') + '</div>';
   const st = stats();
-  h += '<div class="px"><div class="grid3"><div class="stat"><b>' + st.streak + '</b><span>連續天數</span></div><div class="stat"><b>' + st.days + '</b><span>累積天數</span></div><div class="stat"><b>' + damageBonus(s.sec / 3600).toFixed(2) + '×</b><span>傷害加成</span></div></div></div>';
+  h += '<div class="px"><div class="grid3"><div class="stat"><b>' + st.streak + '</b><span>連續天數</span></div><div class="stat"><b>' + st.days + '</b><span>累積天數</span></div><div class="stat"><b>' + skDmg(s).toFixed(2) + '×</b><span>傷害加成</span></div></div></div>';
   return h + '<button class="btn" data-a="backHome">回到道場</button></div>';
 }
 function logView() {
@@ -984,7 +1025,7 @@ function logView() {
 }
 function galleryView() {
   if (galLook === null) galLook = lookIdx();
-  const nr = lookIdx(), bestRank = c => Math.max(-1, ...S.skills.filter(s => s.cat === c).map(s => levelInfo(s.sec / 3600).rank));
+  const nr = lookIdx(), bestRank = c => Math.max(-1, ...S.skills.filter(s => s.cat === c).map(s => skLv(s).rank));
   const lookOK = galLook <= nr, fxOK = galTier <= bestRank(galCat);
   let h = '<div class="galwrap"><div class="galfix"><button class="btn alt sm" data-a="backHome" style="margin-top:12px">← 返回道場</button><h3 style="color:var(--gold);font-weight:normal;margin:6px 0">素材圖鑑</h3><div class="stagewrap"><canvas id="st" class="stage" data-cfg=\'' + cfgJ({ cat: galCat, tier: galTier, train: 1, look: galLook, eyes: galEyes, scarf: galScarf, pet: galPet, label: galCat + '．' + FXNAMES[galCat][galTier], lcolor: RANK_COLORS[galTier] }) + '\'></canvas></div>';
   h += '<div class="px"><div>' + galCat + '．' + FXNAMES[galCat][galTier] + '　<span style="color:' + RANK_COLORS[galTier] + '">' + RANKS[galTier] + '級</span>　<span class="dim">' + (fxOK ? '已解鎖' : '未解鎖（' + RANKS[galTier] + ' 級解鎖）') + '</span></div><div style="margin-top:4px">' + LOOKS[galLook].name + '　<span class="dim">' + LOOKS[galLook].need + '　' + (lookOK ? '已解鎖' : '未解鎖') + '</span></div></div>';
@@ -1040,39 +1081,61 @@ function first7Card() {
 
 /* ---------- 技能 modal ---------- */
 let newCat = '忍術';
+let fm = null, newDiff = 'hard';
+const WD = ['一', '二', '三', '四', '五', '六', '日'], WDN = [1, 2, 3, 4, 5, 6, 0];
+function fmFrom(s) {
+  return { days: s && s.days !== undefined ? (s.days ? s.days.slice() : []) : [0, 1, 2, 3, 4, 5, 6], free: !!(s && s.days === null), ron: s && s.remind ? !!s.remind.on : !s, rt: s && s.remind && s.remind.t ? s.remind.t : '20:00', goal: (s && s.goal) || goalMin() };
+}
+function schedHTML() {
+  const all = fm.days.length === 7 && !fm.free, gm = fm.goal;
+  let h = '<div class="fset"><h4>固定修練日</h4><div class="chips"><button class="chip ' + (all ? 'on' : '') + '" data-a="fmAll">全選</button><button class="chip ' + (fm.free ? 'on' : '') + '" data-a="fmFree">不固定</button></div><div class="chips">' +
+    WD.map((n, i) => '<button class="chip ' + (!fm.free && fm.days.includes(WDN[i]) ? 'on' : '') + (fm.free ? ' lock' : '') + '" data-a="fmDay" data-v="' + WDN[i] + '">' + n + '</button>').join('') + '</div></div>';
+  h += '<div class="fset ' + (fm.free ? 'off' : '') + '"><h4>修練提醒</h4><div class="row"><button class="btn alt sm" data-a="fmRem">' + (fm.ron ? '開啟' : '關閉') + '</button><span class="sp"></span><input type="time" id="fmT" value="' + fm.rt + '"' + (fm.ron ? '' : ' disabled') + ' style="' + (fm.ron ? '' : 'opacity:.4') + '"></div>' + (fm.free ? '<div class="dim" style="margin-top:4px">修練日不固定時無法設定提醒</div>' : '') + '<div class="dim" style="margin-top:4px">推播功能開發中，目前只會先存下設定</div></div>';
+  h += '<div class="fset"><h4>預設修練時長</h4><div class="row"><button class="btn alt sm" data-a="fmGH" data-v="-1">−</button><b style="min-width:58px;text-align:center">' + Math.floor(gm / 60) + ' 小時</b><button class="btn alt sm" data-a="fmGH" data-v="1">＋</button><span class="sp"></span><button class="btn alt sm" data-a="fmGM" data-v="-15">−</button><b style="min-width:52px;text-align:center">' + (gm % 60) + ' 分</b><button class="btn alt sm" data-a="fmGM" data-v="15">＋</button></div><div class="dim" style="margin-top:4px">選擇這個技能修練時自動帶入，修練頁仍可調整</div></div>';
+  return h;
+}
+function redrawSched() { const t = document.getElementById('fmT'); if (t) fm.rt = t.value || fm.rt; const b = document.getElementById('sched'); if (b) b.innerHTML = schedHTML(); }
+function diffHTML() {
+  return '<div class="diffs">' + Object.keys(DIFF).map(k => '<button class="cat ' + (k === newDiff ? 'on' : '') + '" data-a="pickDiff" data-v="' + k + '"><b>' + DIFF[k].name + '</b>' + (k === 'easy' ? '上限 A 級' : k === 'mid' ? '上限 S 級' : '可達 SS 級') + '</button>').join('') + '</div><div class="dim">依自己的標準選擇。<b style="color:#ff9b97;font-weight:normal">建立後無法修改。</b>簡單、中等達到上限後需要突破卷軸才能繼續升級，強度也較低。</div>';
+}
+function readSched() {
+  const t = document.getElementById('fmT'); if (t && t.value) fm.rt = t.value;
+  if (!fm.free && !fm.days.length) { toast('請選擇修練日，或選「不固定」'); return null; }
+  return { days: fm.free ? null : WDN.filter(d => fm.days.includes(d)), remind: { on: !fm.free && fm.ron, t: fm.rt }, goal: fm.goal };
+}
 function addSkillModal() {
-  newCat = '忍術';
+  newCat = '忍術'; newDiff = 'hard'; fm = fmFrom(null);
   modal('<h2>新增技能</h2><div class="dim">名稱格式：類別．○○之術</div><input type="text" id="sn" maxlength="6" placeholder="例如：滑板、畫畫、日文" style="margin:10px 0"><div class="cats">' +
     Object.keys(CATS).map(c => '<button class="cat ' + (c === newCat ? 'on' : '') + '" data-a="pickCat" data-v="' + c + '"><b style="color:' + CATS[c].color + '">' + c + '</b>' + CATS[c].desc + '</button>').join('') +
-    '</div><div class="dim">類別決定施展時的特效風格。新技能從 D 級 Lv.1 開始。</div><button class="btn" data-a="createSkill">創立</button><button class="btn alt" data-a="closeModal">取消</button>');
+    '</div><div class="dim">類別決定施展時的特效風格。新技能從 D 級 Lv.1 開始。</div><h3 style="color:var(--gold);font-weight:normal;margin:12px 0 0">難度</h3><div id="diffbox">' + diffHTML() + '</div><div id="sched">' + schedHTML() + '</div><button class="btn" data-a="createSkill">創立</button><button class="btn alt" data-a="closeModal">取消</button>');
 }
 let skFx = 0;
 function skillModal(id) {
   const s = skillById(id); if (!s) return;
-  const li = levelInfo(s.sec / 3600);
-  const bonus = damageBonus(s.sec / 3600);
+  const li = skLv(s);
+  const bonus = skDmg(s);
   let h = '<h2>' + titleHTML(s, true) + '</h2><div class="chips">' + RANKS.map((r, i) => '<span class="chip ' + (i === li.rank ? 'on' : '') + '" style="color:' + RANK_COLORS[i] + '">' + r + '</span>').join('') + '</div>' +
-    '<div class="bar" style="--c:' + li.color + '"><i style="width:' + (li.progress * 100) + '%"></i></div><div class="dim" style="margin:6px 0">累積 ' + fmtHours(s.sec) + ' 小時　傷害加成 ' + (bonus * 100).toFixed(0) + '%<br>' + (li.isMax ? '已達最高境界' : '下一級還需 ' + (li.need - li.into).toFixed(1) + ' 小時') + '</div>' +
+    '<div class="bar" style="--c:' + li.color + '"><i style="width:' + (li.progress * 100) + '%"></i></div><div class="dim" style="margin:6px 0">難度 ' + skDiff(s).name + '　累積 ' + fmtHours(s.sec) + ' 小時　傷害加成 ' + (bonus * 100).toFixed(0) + '%<br>' + lvNote(li) + '</div>' + (li.capped ? '<button class="btn gold" data-a="lbOpen" data-v="' + s.id + '">突破</button>' : '') + '<div class="dim" style="margin:2px 0 4px">' + schedText(s) + '</div><button class="btn alt sm" data-a="editSched" data-v="' + s.id + '">修練設定</button>' +
     '<h3 style="color:var(--gold);font-weight:normal;margin:12px 0 4px">施術特效</h3><div class="chips" id="famchips" style="margin-bottom:6px"></div><div class="stagewrap"><canvas id="mst" class="stage"></canvas></div><div class="chips" id="fxchips"></div><div class="dim">點選已解鎖的特效即可裝備（◆ 為目前裝備），修練畫面會用它攻擊木樁</div>' +
     '<button class="btn alt" data-a="closeModal">關閉</button><button class="btn alt sm" data-a="delSkill" data-v="' + s.id + '" style="color:#ff9b97">刪除技能</button>';
   modal(h);
-  const cv = document.getElementById('mst'); skFx = fxTier(s); modalStage = new Stage(cv); modalStage.eyes = S.equip.eyes || null; modalStage.scarf = S.equip.scarf || null; modalStage.pet = S.equip.pet || null; modalStage.bonus = damageBonus(s.sec / 3600); modalStage.label = skillLabel(s); modalStage.lcolor = rankColor(s); modalStage.set(fxCat(s), skFx, true, lookIdx(), true); modalStage.start();
+  const cv = document.getElementById('mst'); skFx = fxTier(s); modalStage = new Stage(cv); modalStage.eyes = S.equip.eyes || null; modalStage.scarf = S.equip.scarf || null; modalStage.pet = S.equip.pet || null; modalStage.bonus = skDmg(s); modalStage.label = skillLabel(s); modalStage.lcolor = rankColor(s); modalStage.set(fxCat(s), skFx, true, lookIdx(), true); modalStage.start();
   modalStage.skill = s;
   drawFxChips();
 }
 function drawFxChips() {
-  const s = modalStage.skill, li = levelInfo(s.sec / 3600);
+  const s = modalStage.skill, li = skLv(s);
   document.getElementById('famchips').innerHTML = '<button class="chip ' + (!s.fam ? 'on' : '') + '" data-a="fam" data-v="">' + s.cat + '特效</button>' + FAMS.map(f => '<button class="chip ' + (s.fam === f ? 'on' : '') + '" data-a="fam" data-v="' + f + '">' + f + '系列</button>').join('');
   document.getElementById('fxchips').innerHTML = FXNAMES[fxCat(s)].map((n, i) => '<button class="chip ' + (i <= li.rank ? '' : 'lock') + (i === skFx ? ' on' : '') + '" style="color:' + RANK_COLORS[i] + '" data-a="fx" data-v="' + i + '">' + (i <= li.rank ? '' : '🔒') + (i === fxTier(s) ? '◆' : '') + n + '</button>').join('');
 }
 function settingsModal() {
   modal('<h2>設定</h2><div class="row" style="margin-bottom:10px"><span>音效</span><span class="sp"></span><button class="btn alt sm" data-a="toggleSound">' + (S.settings.sound ? '開啟' : '關閉') + '</button></div>' +
-    '<h3 style="color:var(--gold);font-weight:normal;margin:8px 0">備份</h3><div class="dim" style="margin-bottom:6px">複製下方文字存好，換裝置時貼到「還原」。（照片不含在備份內）</div><textarea id="bk" readonly style="min-height:60px">' + esc(JSON.stringify({ v: 1, skills: S.skills, sessions: S.sessions, gems: S.gems, claimed: S.claimed, settings: S.settings, owned: S.owned, equip: S.equip, login: S.login, first7: S.first7, bonusGems: S.bonusGems })) + '</textarea><button class="btn alt sm" data-a="copyBackup">複製備份</button>' +
+    '<h3 style="color:var(--gold);font-weight:normal;margin:8px 0">備份</h3><div class="dim" style="margin-bottom:6px">複製下方文字存好，換裝置時貼到「還原」。（照片不含在備份內）</div><textarea id="bk" readonly style="min-height:60px">' + esc(JSON.stringify({ v: 1, skills: S.skills, sessions: S.sessions, gems: S.gems, claimed: S.claimed, settings: S.settings, owned: S.owned, equip: S.equip, login: S.login, first7: S.first7, bonusGems: S.bonusGems, items: S.items })) + '</textarea><button class="btn alt sm" data-a="copyBackup">複製備份</button>' +
     '<h3 style="color:var(--gold);font-weight:normal;margin:10px 0 6px">還原</h3><textarea id="rs" placeholder="貼上備份文字" style="min-height:60px"></textarea><button class="btn alt sm" data-a="restore">還原資料</button>' +
     testSection() + '<h3 style="color:var(--gold);font-weight:normal;margin:10px 0 6px">重置</h3><button class="btn alt sm" data-a="reset" style="color:#ff9b97">清除所有資料</button><button class="btn" data-a="closeModal">關閉</button>');
 }
 function testSection() {
-  const gearBtns = '<div class="row" style="flex-wrap:wrap"><button class="btn alt sm" data-a="simUnlock">解鎖全部裝備</button><button class="btn alt sm" data-a="simGearReset" style="color:#ff9b97">重置裝備／登入／七日獎勵</button></div>';
+  const gearBtns = '<div class="row" style="flex-wrap:wrap"><button class="btn alt sm" data-a="simGems">勾玉 +500</button><button class="btn alt sm" data-a="simUnlock">解鎖全部裝備</button><button class="btn alt sm" data-a="simGearReset" style="color:#ff9b97">重置裝備／登入／七日獎勵</button></div>';
   if (!S.skills.length) return '<h3 style="color:var(--gold);font-weight:normal;margin:10px 0 6px">測試工具（臨時）</h3>' + gearBtns;
   const sim = dayKey(nowTs());
   let h = '<h3 style="color:var(--gold);font-weight:normal;margin:10px 0 6px">測試工具（臨時）</h3><div class="dim" style="margin-bottom:6px">增加時數、模擬修練都會產生標示（模擬）的紀錄（計入今日任務、連續天數、勾玉），可一鍵清除；把時數往下調則直接扣除。</div>';
@@ -1083,19 +1146,45 @@ function testSection() {
 }
 async function setHours(id, hours) {
   const k = skillById(id); if (!k) return;
-  hours = Math.max(0, Math.min(MAX_HOURS, hours));
+  const T = lvTable(k); hours = Math.max(0, Math.min(T.st[29] + 100, hours));
   const target = Math.round(hours * 3600), delta = target - Math.round(k.sec);
   let r = null;
   if (delta > 0) { const end = nowTs(); r = addSession(S, id, delta, end - delta * 1000, end, '（模擬）'); r.session.sim = 1; }
-  else { k.sec = target; }
+  else { k.sec = target; k.xp = Math.min(skXp(k), target); }
   save(); closeModal(); render();
-  if (r && (r.levelUp || r.ninjaUp)) await breakthroughs(r);
+  if (r && (r.levelUp || r.ninjaUp || r.capHit) && await breakthroughs(r)) return;
   settingsModal();
 }
 function confirmModal(msg, yesAct, yesLabel, noLabel, v) {
   modal('<h2>確認</h2><div style="margin:8px 0 14px">' + msg + '</div><button class="btn" data-a="' + yesAct + '" data-v="' + (v || '') + '">' + yesLabel + '</button><button class="btn alt" data-a="closeModal">' + (noLabel || '取消') + '</button>');
 }
 
+function schedText(s) {
+  const d = s.days === undefined ? [0, 1, 2, 3, 4, 5, 6] : s.days;
+  const days = d === null ? '修練日不固定' : d.length === 7 ? '每天修練' : '每週 ' + WDN.filter(x => d.includes(x)).map(x => WD[WDN.indexOf(x)]).join('、');
+  const rm = d !== null && s.remind && s.remind.on ? '　提醒 ' + s.remind.t : '　不提醒';
+  return days + rm + '　預設 ' + goalText(s.goal || goalMin());
+}
+function schedModal(id) {
+  const s = skillById(id); if (!s) return; fm = fmFrom(s);
+  modal('<h2>修練設定</h2><div style="margin-bottom:4px">' + titleHTML(s, false) + '</div><div class="dim">難度：' + skDiff(s).name + '（建立後無法修改）</div><div id="sched">' + schedHTML() + '</div><button class="btn" data-a="saveSched" data-v="' + id + '">儲存</button><button class="btn alt" data-a="openSkill" data-v="' + id + '">取消</button>');
+}
+/* ---------- 技能突破（卷軸） ---------- */
+function lbInfo(s) { const d = skDiff(s), li = skLv(s); return { d, li, sc: SCROLLS[d.scroll], color: li.rank === 3 ? '#ff9a3c' : RANK_COLORS[5] }; }
+function lbModal(id) {
+  const s = skillById(id); if (!s) return; const o = lbInfo(s); if (!o.li.capped || !o.sc) return;
+  S.items = S.items || {}; const have = S.items[o.d.scroll] || 0, poor = (S.gems || 0) < o.sc.price;
+  modal('<h2>' + titleHTML(s, true) + '</h2><div style="margin:10px 0;font-size:17px;text-align:center;line-height:1.7">技能已滿等，是否<span style="color:' + o.color + '">突破</span>？<br>消耗 <span style="color:' + o.sc.color + '">' + o.sc.name + '</span> x1</div>' +
+    '<div class="dim" style="text-align:center">持有 ' + have + ' 張　勾玉 ' + (S.gems || 0) + '</div>' +
+    (have ? '<button class="btn" data-a="lbYes" data-v="' + id + '">是</button>' : '<button class="btn" data-a="lbBuy" data-v="' + id + '"' + (poor ? ' disabled' : '') + '>是（以 ' + o.sc.price + ' 勾玉購買卷軸）</button>' + (poor ? '<div class="dim" style="text-align:center">勾玉不足</div>' : '')) +
+    '<button class="btn alt" data-a="lbNo" data-v="' + id + '">否</button>');
+}
+async function lbDo(id) {
+  const s = skillById(id); const o = lbInfo(s); if (!o.li.capped) return;
+  S.items[o.d.scroll] = (S.items[o.d.scroll] || 1) - 1; s.brk = (s.brk || 0) + 1; save(); closeModal(); render();
+  await showBT({ grand: 1, color: o.color, big: '突破', h: '突破成功！', body: '<div class="nm">' + titleHTML(s, false) + '</div><div class="lv" style="color:' + o.color + '">上限提升至 ' + (lvTable(s).cap === 29 ? 'SS' : RANKS[lvTable(s).cap / 5]) + ' 級</div><div class="dim">傷害加成 ' + (skDmg(s) * 100).toFixed(0) + '%</div>' });
+  render();
+}
 /* ---------- 突破畫面 ---------- */
 function showBT(opts) {
   return new Promise(res => {
@@ -1117,6 +1206,8 @@ async function breakthroughs(r) {
   }
   if (r.ninjaUp) await showBT({ grand: 1, color: '#ffd43b', big: NINJA_RANKS[r.ninjaRank], h: '晉升！', body: '<div class="nm">你成為了 ' + NINJA_RANKS[r.ninjaRank] + '</div>' });
   if (r.gems) Sfx.gem();
+  if (r.capHit && sk) { lbModal(sk.id); return true; }
+  return false;
 }
 
 /* ---------- 動作 ---------- */
@@ -1148,19 +1239,34 @@ const A = {
     let n = (document.getElementById('sn').value || '').trim().replace(/\s+/g, '').replace(/之術$/, '');
     if (!n) { toast('請輸入技能名稱'); return; }
     if (S.skills.some(s => s.name === n && s.cat === newCat)) { toast('已有同名技能'); return; }
-    S.skills.push({ id: 'k' + Date.now().toString(36), name: n, cat: newCat, sec: 0, created: Date.now() });
+    const sc = readSched(); if (!sc) return;
+    S.skills.push(Object.assign({ id: 'k' + Date.now().toString(36), name: n, cat: newCat, sec: 0, xp: 0, diff: newDiff, brk: 0, created: Date.now() }, sc));
     save(); closeModal(); if (tab === 'home' || tab === 'train') { selId = S.skills[S.skills.length - 1].id; } render(); toast('新增了 ' + newCat + '．' + n + '之術');
   },
   openSkill(v) { skillModal(v); },
-  fx(v) { const i = +v, s = modalStage.skill, li = levelInfo(s.sec / 3600); if (i > li.rank) { toast('達到 ' + RANKS[i] + ' 級解鎖'); return; } skFx = i; s.fx = i; save(); modalStage.set(fxCat(s), i, true, lookIdx(), true); drawFxChips(); toast('已裝備「' + FXNAMES[fxCat(s)][i] + '」'); },
+  fx(v) { const i = +v, s = modalStage.skill, li = skLv(s); if (i > li.rank) { toast('達到 ' + RANKS[i] + ' 級解鎖'); return; } skFx = i; s.fx = i; save(); modalStage.set(fxCat(s), i, true, lookIdx(), true); drawFxChips(); toast('已裝備「' + FXNAMES[fxCat(s)][i] + '」'); },
   fam(v) { const s = modalStage.skill; s.fam = v || null; save(); modalStage.set(fxCat(s), skFx, true, lookIdx(), true); drawFxChips(); toast(v ? '已切換為「' + v + '」特效系列' : '已改回依類別特效'); },
   delSkill(v) { confirmModal('刪除這個技能？已累積的時數會一併消失，修練歷程保留。', 'delSkillYes', '確定刪除', '取消', v); },
   delSkillYes(v) { S.skills = S.skills.filter(s => s.id !== v); save(); closeModal(); render(); },
   closeModal() { closeModal(); },
   selSkill(v) { selId = v; render(); },
-  goalH(v) { const g = goalMin(); let t = (Math.floor(g / 60) + (+v)) * 60 + g % 60; t = Math.max(15, Math.min(720, t)); S.settings.goal = t; save(); render(); },
-  goalM(v) { const g = goalMin(), h = Math.floor(g / 60); let m = ((g % 60) + (+v) + 60) % 60, t = h * 60 + m; t = Math.max(15, Math.min(720, t)); S.settings.goal = t; save(); render(); },
-  startTrain() { Sfx.init(); Sfx.start(); S.active = { skillId: selId, start: Date.now(), goal: goalMin() }; tab = 'train'; save(); render(); },
+  pickDiff(v) { newDiff = v; document.getElementById('diffbox').innerHTML = diffHTML(); },
+  fmAll() { fm.free = false; fm.days = fm.days.length === 7 ? [] : [0, 1, 2, 3, 4, 5, 6]; redrawSched(); },
+  fmFree() { fm.free = !fm.free; if (!fm.free && !fm.days.length) fm.days = [0, 1, 2, 3, 4, 5, 6]; redrawSched(); },
+  fmDay(v) { if (fm.free) return; const d = +v; fm.days = fm.days.includes(d) ? fm.days.filter(x => x !== d) : fm.days.concat(d); redrawSched(); },
+  fmRem() { fm.ron = !fm.ron; redrawSched(); },
+  fmGH(v) { fm.goal = stepH(fm.goal, +v); redrawSched(); },
+  fmGM(v) { fm.goal = stepM(fm.goal, +v); redrawSched(); },
+  editSched(v) { schedModal(v); },
+  saveSched(v) { const s = skillById(v), sc = readSched(); if (!s || !sc) return; Object.assign(s, sc); if (tGoalFor === v) tGoalFor = null; save(); render(); skillModal(v); toast('已儲存修練設定'); },
+  lbOpen(v) { lbModal(v); },
+  lbYes(v) { lbDo(v); },
+  lbBuy(v) { const s = skillById(v), o = lbInfo(s); if ((S.gems || 0) < o.sc.price) { toast('勾玉不足'); return; } S.gems -= o.sc.price; S.items = S.items || {}; S.items[o.d.scroll] = (S.items[o.d.scroll] || 0) + 1; save(); lbDo(v); },
+  lbNo(v) { modal('<h2>確認</h2><div style="margin:8px 0 14px">未突破技能僅會累積時數，不會保留經驗值。</div><button class="btn" data-a="closeModal">確認</button><button class="btn alt" data-a="lbOpen" data-v="' + v + '">取消</button>'); },
+  simGems() { S.gems = (S.gems || 0) + 500; S.bonusGems = (S.bonusGems || 0) + 500; save(); render(); settingsModal(); toast('勾玉 +500（測試）'); },
+  goalH(v) { tGoal = stepH(curGoal(), +v); render(); },
+  goalM(v) { tGoal = stepM(curGoal(), +v); render(); },
+  startTrain() { Sfx.init(); Sfx.start(); S.active = { skillId: selId, start: Date.now(), goal: curGoal() }; tGoalFor = null; tab = 'train'; save(); render(); },
   finish() {
     const sec = Math.floor((Date.now() - S.active.start) / 1000);
     if (sec < QUALIFY_SEC) { modal('<h2>時間太短</h2><div style="margin:8px 0 14px">修練不滿 5 分鐘，不會獲得經驗值，也不會被記錄。</div><button class="btn" data-a="closeModal">繼續修練</button><button class="btn alt" data-a="giveupYes">放棄這次</button>'); return; }
@@ -1180,21 +1286,22 @@ const A = {
   settings() { settingsModal(); },
   simDay(v) { S.timeShift = +v === 0 ? 0 : (S.timeShift || 0) + (+v) * 864e5; save(); const nl = checkLogin(); render(); if (nl) loginPopup(); else settingsModal(); },
   async simSes(v) {
-    const k = skillById(v); if (!k) return; const nb = ninjaRankIndex(S.skills), b = levelInfo(k.sec / 3600), end = nowTs();
+    const k = skillById(v); if (!k) return; const nb = ninjaRankIndex(S.skills), b = skLv(k), end = nowTs();
     const r = addSession(S, v, 1800, end - 1800e3, end, '（模擬）'); r.session.sim = 1; save(); render();
-    await breakthroughs(r); settingsModal();
+    if (await breakthroughs(r)) return; settingsModal();
   },
   async simRun() {
     const n = Math.max(1, Math.min(120, parseInt(document.getElementById('simN').value, 10) || 0)); if (!n) { toast('請輸入天數'); return; }
-    const id = (selId && skillById(selId)) ? selId : S.skills[0].id, k = skillById(id), b = levelInfo(k.sec / 3600), nb = ninjaRankIndex(S.skills); let g = 0;
+    const id = (selId && skillById(selId)) ? selId : S.skills[0].id, k = skillById(id), b = skLv(k), nb = ninjaRankIndex(S.skills); let g = 0;
     for (let i = 0; i < n; i++) { const end = nowTs(), r = addSession(S, id, 1800, end - 1800e3, end, '（模擬）'); r.session.sim = 1; g += r.gems; if (i < n - 1) S.timeShift = (S.timeShift || 0) + 864e5; }
-    save(); render(); const a = levelInfo(k.sec / 3600), na = ninjaRankIndex(S.skills);
+    save(); render(); const a = skLv(k), na = ninjaRankIndex(S.skills);
     toast('已模擬 ' + n + ' 天，勾玉 +' + g);
-    if (a.idx > b.idx || na > nb) await breakthroughs({ session: { skillId: id }, before: b, after: a, levelUp: a.idx > b.idx, rankUp: a.rank > b.rank, ninjaUp: na > nb, ninjaRank: na, gems: 0 });
+    const ch = a.capped && !b.capped;
+    if ((a.idx > b.idx || na > nb || ch) && await breakthroughs({ session: { skillId: id }, before: b, after: a, levelUp: a.idx > b.idx, rankUp: a.rank > b.rank, ninjaUp: na > nb, ninjaRank: na, capHit: ch, gems: 0 })) return;
     settingsModal();
   },
   simClear() {
-    for (const x of S.sessions.filter(x => x.sim)) { const k = skillById(x.skillId); if (k) k.sec = Math.max(0, k.sec - x.sec); }
+    for (const x of S.sessions.filter(x => x.sim)) { const k = skillById(x.skillId); if (k) { k.xp = Math.max(0, skXp(k) - x.sec); k.sec = Math.max(0, k.sec - x.sec); } }
     S.sessions = S.sessions.filter(x => !x.sim); S.timeShift = 0;
     const all = pendingRewards({ sessions: S.sessions, claimed: {} }, nowTs()), keep = {}; let g = 0;
     for (const r of all) { keep[r.key] = 1; g += r.gems; }
